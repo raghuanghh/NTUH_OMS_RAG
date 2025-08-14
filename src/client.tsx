@@ -682,7 +682,7 @@ const App: React.FC = () => {
       </InputContainer>
       
       <Footer>
-        <strong>made with <span className="heart">❤️</span> in SF<span className="bridge">🌉</span> w/ <span className="cloudflare-ref">Cloudflare <a href="https://developers.cloudflare.com/autorag/">AutoRAG</a>, <a href="https://developers.cloudflare.com/durable-objects/get-started/">Durable Objects</a>, <a href="https://developers.cloudflare.com/workers-ai/models/gpt-oss-120b/">OpenAI-OSS-120b</a> on Workers AI</span>. Code on GitHub <a href="https://github.com/elizabethsiegle/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss.git">here</a></strong>
+        <strong>made with <span className="heart">❤️</span> in SF<span className="bridge">🌉</span> w/ <span className="cloudflare-ref">Cloudflare <a href="https://developers.cloudflare.com/autorag/">AutoRAG</a>, <a href="https://developers.cloudflare.com/durable-objects/get-started/">Durable Objects</a>, <a href="https://developers.cloudflare.com/workers-ai/models/gpt-oss-120b/">OpenAI-OSS-120b</a> on Workers AI, <a href="https://developers.cloudflare.com/browser-rendering">Browser Rendering</a>, and <a href="https://developers.cloudflare.com/r2/">R2</a></span>. Code on GitHub <a href="https://github.com/elizabethsiegle/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss.git">here</a></strong>
       </Footer>
     </AppContainer>
   );
