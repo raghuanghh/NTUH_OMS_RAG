@@ -231,7 +231,7 @@ export default {
 			const formattedContent = formatContent(content);
 			
 			const html = createSourcePageHTML(
-				'📰 Travis Kelce GQ Article scraped with Cloudflare Browser Rendering from <a href="https://www.gq.com/story/travis-kelce-september-cover-2025-interview-super-bowl-taylor-swift">GQ</a>',
+				'<a href="https://www.gq.com/story/travis-kelce-september-cover-2025-interview-super-bowl-taylor-swift">📰 Travis Kelce GQ Article</a> scraped with Cloudflare Browser Rendering',
 				`
 				<div style="font-family: Georgia, serif;">
 					${formattedContent}
