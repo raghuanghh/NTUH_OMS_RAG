@@ -1,4 +1,5 @@
 import { ChatState } from './chatState';
+import puppeteer from '@cloudflare/puppeteer';
 
 export interface Env {
 	CHAT_STATE: DurableObjectNamespace;
@@ -10,6 +11,111 @@ export interface Env {
 		};
 	};
 }
+
+// Function to scrape GQ article using browser rendering
+async function scrapeGQArticle(env: Env): Promise<string> {
+	const browser = await puppeteer.launch(env.BROWSER);
+	const page = await browser.newPage();
+	
+	try {
+		console.log('Navigating to GQ article...');
+		
+		// Set user agent to avoid bot detection
+		await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
+		
+		// Set viewport
+		await page.setViewport({ width: 1280, height: 720 });
+		
+		// Increase timeout and try different wait strategies
+		await page.goto('https://www.gq.com/story/travis-kelce-september-cover-2025-interview-super-bowl-taylor-swift', {
+			waitUntil: 'domcontentloaded', // Changed from networkidle0
+			timeout: 60000 // Increased to 60 seconds
+		});
+		
+		console.log('Page loaded, waiting for content...');
+		
+		// Wait a bit more for any dynamic content
+		await new Promise(resolve => setTimeout(resolve, 3000));
+		
+		console.log('Extracting JSON-LD data...');
+		
+		// Extract the JSON-LD structured data
+		const articleContent = await page.evaluate(() => {
+			console.log('Starting content extraction...');
+			
+			// Look for JSON-LD script tags
+			const jsonLdScripts = document.querySelectorAll('script[type="application/ld+json"]');
+			console.log(`Found ${jsonLdScripts.length} JSON-LD scripts`);
+			
+			for (let i = 0; i < jsonLdScripts.length; i++) {
+				try {
+					const script = jsonLdScripts[i];
+					const jsonData = JSON.parse(script.textContent || '');
+					console.log(`Script ${i} type:`, jsonData['@type']);
+					
+					// Check if this is the NewsArticle schema
+					if (jsonData['@type'] === 'NewsArticle' && jsonData.articleBody) {
+						console.log('Found NewsArticle with articleBody');
+						return jsonData.articleBody;
+					}
+					
+					// Handle arrays of JSON-LD objects
+					if (Array.isArray(jsonData)) {
+						for (const item of jsonData) {
+							if (item['@type'] === 'NewsArticle' && item.articleBody) {
+								console.log('Found NewsArticle in array with articleBody');
+								return item.articleBody;
+							}
+						}
+					}
+				} catch (e) {
+					console.log(`Failed to parse JSON-LD script ${i}:`, (e as Error).message);
+					continue;
+				}
+			}
+			
+			console.log('No JSON-LD found, trying DOM extraction...');
+			
+			// Fallback: try to extract article content the old way
+			const contentSelectors = [
+				'article',
+				'[data-module="ArticleBody"]',
+				'.ArticleBodyWrapper',
+				'.content-body',
+				'article .body__inner-container',
+				'article .article-body',
+				'main'
+			];
+			
+			for (const selector of contentSelectors) {
+				const element = document.querySelector(selector);
+				if (element && (element as HTMLElement).innerText.length > 500) {
+					console.log(`Found content with selector: ${selector}`);
+					return (element as HTMLElement).innerText;
+				}
+			}
+			
+			console.log('No content found with any selector');
+			return null;
+		});
+		
+		console.log(`Extracted ${articleContent?.length || 0} characters`);
+		
+		if (!articleContent || articleContent.length < 100) {
+			throw new Error('Could not extract meaningful content from the article');
+		}
+		
+		return articleContent;
+		
+	} catch (error) {
+		console.error('Error scraping GQ article:', error);
+		throw error;
+	} finally {
+		await browser.close();
+	}
+}
+
+  
 
 // Helper function to fetch content from URL
 async function fetchContentFromURL(url: string): Promise<string> {
@@ -200,6 +306,64 @@ export default {
 		// Handle static assets
 		if (url.pathname === '/' || url.pathname.startsWith('/bundle.js')) {
 			return env.ASSETS.fetch(request);
+		}
+
+		// Handle scraping and displaying GQ article
+		if (url.pathname === '/scrape-gq') {
+			try {
+				console.log('Scraping GQ article...');
+				const content = await scrapeGQArticle(env);
+				
+				// For copyright compliance, consider showing excerpts rather than full content
+				const excerpt = content.length > 2000 ? 
+					content.substring(0, 2000) + '\n\n[Article excerpt shown - Full article available at GQ.com and was scraped for this app]' : 
+					content;
+				
+				const formattedContent = formatContent(excerpt);
+				
+				const html = createSourcePageHTML(
+					'📰 Travis Kelce GQ Article',
+					`
+					<div style="background: rgba(255, 215, 0, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+						<strong>🔥 Content scraped from GQ.com 🔥</strong><br>
+						<small>Scraped: ${new Date().toLocaleString()}</small><br>
+						<small><a href="https://www.gq.com/story/travis-kelce-september-cover-2025-interview-super-bowl-taylor-swift" target="_blank">View full article on GQ.com</a></small>
+					</div>
+					<div style="font-family: Georgia, serif;">
+						${formattedContent}
+					</div>
+					`
+				);
+				
+				return new Response(html, {
+					headers: { 'Content-Type': 'text/html' }
+				});
+			} catch (error) {
+				console.error('GQ scraping error:', error);
+				
+				const errorHtml = createSourcePageHTML(
+					'📰 Travis Kelce GQ Article',
+					`
+					<div style="text-align: center; padding: 40px;">
+						<h2 style="color: #dc143c;">Scraping Failed</h2>
+						<p><strong>Error:</strong> ${error}</p>
+						<p><a href="https://www.gq.com/story/travis-kelce-september-cover-2025-interview-super-bowl-taylor-swift" target="_blank">Read original article on GQ.com</a></p>
+						<br>
+						<h3>Troubleshooting:</h3>
+						<ul style="text-align: left; display: inline-block;">
+							<li>Make sure browser rendering is enabled in wrangler.toml</li>
+							<li>Check if @cloudflare/puppeteer is installed</li>
+							<li>Verify the GQ URL is accessible</li>
+							<li>Check worker logs with: wrangler tail</li>
+						</ul>
+					</div>
+					`
+				);
+				
+				return new Response(errorHtml, {
+					headers: { 'Content-Type': 'text/html' }
+				});
+			}
 		}
 
 		// Handle transcript page
