@@ -7,12 +7,26 @@
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",
-		"cf-typegen": "wrangler types"
+		"cf-typegen": "wrangler types",
+		"build": "esbuild src/client.tsx --bundle --outfile=public/bundle.js --format=iife --define:process.env.NODE_ENV='\"production\"' --minify"
+	},
+	"dependencies": {
+		"@emotion/react": "^11.11.3",
+		"@emotion/styled": "^11.11.0",
+		"react": "^18.2.0",
+		"react-dom": "^18.2.0"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"@cloudflare/vitest-pool-workers": "^0.7.5",
+		"@cloudflare/workers-types": "^4.20250422.0",
+		"@types/react": "^18.3.23",
+		"@types/react-dom": "^18.3.7",
+		"esbuild": "^0.25.9",
+		"ts-loader": "^9.5.1",
 		"typescript": "^5.5.2",
-		"vitest": "~3.2.0",
-		"wrangler": "^4.29.1"
+		"vitest": "~3.0.7",
+		"webpack": "^5.90.1",
+		"webpack-cli": "^5.1.4",
+		"wrangler": "^4.12.0"
 	}
 }

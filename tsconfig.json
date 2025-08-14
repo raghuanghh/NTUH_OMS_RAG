@@ -5,14 +5,18 @@
 		/* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
 		"target": "es2021",
 		/* Specify a set of bundled library declaration files that describe the target runtime environment. */
-		"lib": ["es2021"],
+		"lib": ["es2021", "dom", "dom.iterable"],
 		/* Specify what JSX code is generated. */
 		"jsx": "react-jsx",
 
 		/* Specify what module code is generated. */
-		"module": "es2022",
+		"module": "esnext",
 		/* Specify how TypeScript looks up a file from a given module specifier. */
-		"moduleResolution": "Bundler",
+		"moduleResolution": "node",
+		/* Specify type package names to be included without being referenced in a source file. */
+		"types": [
+			"@cloudflare/workers-types/2023-07-01"
+		],
 		/* Enable importing .json files */
 		"resolveJsonModule": true,
 
@@ -22,7 +26,7 @@
 		"checkJs": false,
 
 		/* Disable emitting files from a compilation. */
-		"noEmit": true,
+		"noEmit": false,
 
 		/* Ensure that each file can be safely transpiled without relying on other imports. */
 		"isolatedModules": true,
@@ -36,10 +40,10 @@
 
 		/* Skip type checking all .d.ts files. */
 		"skipLibCheck": true,
-		"types": [
-			"./worker-configuration.d.ts"
-		]
+
+		/* Specify the output directory for compiled files. */
+		"outDir": "./dist"
 	},
 	"exclude": ["test"],
-	"include": ["worker-configuration.d.ts", "src/**/*.ts"]
+	"include": ["worker-configuration.d.ts", "src/**/*.ts", "src/**/*.tsx"]
 }
