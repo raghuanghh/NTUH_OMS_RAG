@@ -8,7 +8,7 @@
 | **Cloudflare Workers** | Serverless backend & API | [Docs](https://developers.cloudflare.com/workers/) |
 | **Durable Objects** | Stateful chat session management | [Docs](https://developers.cloudflare.com/durable-objects/) |
 | **R2 Storage** | Object storage for transcript & article | [Docs](https://developers.cloudflare.com/r2/) |
-| **Workers AI** | AI inference w/ openai-oss-120b | [Docs](https://developers.cloudflare.com/workers-ai/) |
+| **Workers AI** | AI inference w/ openai gpt-oss-120b | [Docs](https://developers.cloudflare.com/workers-ai/) |
 | **AutoRAG** | Retrieval Augmented Generation | [Docs](https://developers.cloudflare.com/autorag/) |
 | **Browser Rendering** | Scraped GQ article | [Docs](https://developers.cloudflare.com/browser-rendering) |
 
