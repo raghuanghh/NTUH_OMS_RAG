@@ -23,6 +23,24 @@ const AppContainer = styled.div`
   height: 100vh;
   background: linear-gradient(135deg, #ff8c00 0%, #ff6347 50%, #ffd700 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 2px, transparent 2px),
+      radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.4) 1px, transparent 1px),
+      radial-gradient(circle at 40% 60%, rgba(255, 215, 0, 0.3) 3px, transparent 3px),
+      radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.2) 2px, transparent 2px),
+      radial-gradient(circle at 10% 80%, rgba(255, 140, 0, 0.3) 2px, transparent 2px);
+    background-size: 100px 100px, 150px 150px, 200px 200px, 120px 120px, 180px 180px;
+    pointer-events: none;
+  }
 `;
 
 const Header = styled.div`
@@ -31,6 +49,25 @@ const Header = styled.div`
   padding: 20px;
   text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  
+  &::before {
+    content: '✨';
+    position: absolute;
+    top: 15px;
+    left: 20px;
+    font-size: 1.5rem;
+    opacity: 0.7;
+  }
+
+  &::after {
+    content: '⭐';
+    position: absolute;
+    bottom: 15px;
+    right: 70px;
+    font-size: 1.2rem;
+    opacity: 0.6;
+  }
   
   h1 {
     color: white;
@@ -81,6 +118,25 @@ const IntroSection = styled.div`
   margin: 16px 20px 0 20px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+
+  &::before {
+    content: '💫';
+    position: absolute;
+    top: 8px;
+    left: 12px;
+    font-size: 1.2rem;
+    opacity: 0.8;
+  }
+
+  &::after {
+    content: '🔥';
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 1.2rem;
+    opacity: 0.8;
+  }
 
   h3 {
     color: white;
@@ -115,11 +171,22 @@ const IntroSection = styled.div`
     font-size: 0.85rem;
     transition: background-color 0.2s ease;
     border: 1px solid rgba(255, 255, 255, 0.3);
+    position: relative;
 
     &:hover {
       background: rgba(255, 255, 255, 0.3);
       text-decoration: none;
       color: white;
+    }
+
+    &:first-of-type::before {
+      content: '🎤';
+      margin-right: 4px;
+    }
+
+    &:last-of-type::before {
+      content: '🏈';
+      margin-right: 4px;
     }
   }
 `;
@@ -131,6 +198,27 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
+  position: relative;
+
+  &::before {
+    content: '✨';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 1.5rem;
+    opacity: 0.3;
+    z-index: 0;
+  }
+
+  &::after {
+    content: '💫';
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 1.3rem;
+    opacity: 0.3;
+    z-index: 0;
+  }
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -161,6 +249,27 @@ const MessageBubble = styled.div<{ isAI?: boolean }>`
     ? 'rgba(255, 255, 255, 0.2)' 
     : 'rgba(0, 0, 0, 0.1)'
   };
+  position: relative;
+  
+  &::before {
+    content: ${props => props.isAI ? "'🏈 ✨'" : "'🎤 💛'"};
+    position: absolute;
+    top: -8px;
+    ${props => props.isAI ? 'right: -8px;' : 'left: -8px;'}
+    font-size: 1rem;
+    background: ${props => props.isAI ? 'rgba(220, 20, 60, 0.9)' : 'rgba(255, 215, 0, 0.9)'};
+    padding: 2px 6px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  &::after {
+    content: ${props => props.isAI ? "''" : "'✨'"};
+    position: absolute;
+    bottom: -5px;
+    ${props => props.isAI ? 'left: -5px;' : 'right: -5px;'}
+    font-size: 1.2rem;
+  }
 `;
 
 const MessageContent = styled.div<{ isAI?: boolean }>`
@@ -198,6 +307,25 @@ const InputContainer = styled.div`
   border-top: 1px solid rgba(255, 255, 255, 0.2);
   display: flex;
   gap: 10px;
+  position: relative;
+
+  &::before {
+    content: '💛';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    font-size: 1rem;
+    opacity: 0.7;
+  }
+
+  &::after {
+    content: '⚡';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 1rem;
+    opacity: 0.7;
+  }
 `;
 
 const Input = styled.input`
@@ -233,6 +361,7 @@ const Button = styled.button<{ variant?: 'secondary' }>`
   font-size: 16px;
   font-weight: 600;
   transition: opacity 0.2s ease;
+  position: relative;
   
   &:hover:not(:disabled) {
     opacity: 0.9;
@@ -241,6 +370,16 @@ const Button = styled.button<{ variant?: 'secondary' }>`
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+  }
+
+  &:first-of-type::after {
+    content: '🚀';
+    margin-left: 4px;
+  }
+
+  &:last-of-type::after {
+    content: '🧹';
+    margin-left: 4px;
   }
 `;
 
@@ -255,6 +394,25 @@ const Footer = styled.footer`
   font-size: 13px;
   font-weight: 500;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+
+  &::before {
+    content: '⭐';
+    position: absolute;
+    top: 5px;
+    left: 15px;
+    font-size: 1rem;
+    opacity: 0.6;
+  }
+
+  &::after {
+    content: '✨';
+    position: absolute;
+    top: 5px;
+    right: 15px;
+    font-size: 1rem;
+    opacity: 0.6;
+  }
 
   .heart {
     color: #ff1493;
@@ -355,17 +513,17 @@ const App: React.FC = () => {
       </Header>
 
       <IntroSection>
-        <h3>Chat w/ the Sources</h3>
+        <h3>Chat with the Sources</h3>
         <p>
         Ask a LLM anything about Taylor Swift's appearance on the New Heights podcast on August 12, 2025 or Travis Kelce's GQ interview! 
         I have access to both transcripts and can share insights about their conversations.
         </p>
         <div className="source-links">
           <a href="/transcript" className="source-link" target="_blank">
-           New Heights Transcript (2 hour long!)🎤
+            New Heights Transcript (2 hours long!🎤)
           </a>
           <a href="/gq-article" className="source-link" target="_blank">
-            Travis GQ Interview Article  📰 
+            Travis GQ Interview Article 📰
           </a>
         </div>
       </IntroSection>
@@ -408,7 +566,7 @@ const App: React.FC = () => {
           value={newMessage}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
-          placeholder="Ask about key quotes from the Taylor Swift New Heights podcast or Travis GQ article..."
+          placeholder="Ask about key quotes from the Taylor Swift New Heights podcast or a summary of the Travis GQ article..."
           disabled={isLoading}
         />
         <Button onClick={sendMessage} disabled={isLoading}>
@@ -420,7 +578,7 @@ const App: React.FC = () => {
       </InputContainer>
       
       <Footer>
-      <strong>made with <span className="heart">❤️</span> in SF<span className="bridge">🌉</span> w/ <span className="cloudflare-ref">Cloudflare <a href="https://developers.cloudflare.com/autorag/">AutoRAG</a>, <a href="https://developers.cloudflare.com/durable-objects/get-started/">Durable Objects</a>, <a href="https://developers.cloudflare.com/workers-ai/models/gpt-oss-120b/">OpenAI-OSS-120b</a> on Workers AI, <a href="https://developers.cloudflare.com/browser-rendering">Browser Rendering</a>, and <a href="https://developers.cloudflare.com/r2/">R2</a></span>. Code on GitHub <a href="https://github.com/elizabethsiegle/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss.git">here</a></strong>
+      <strong>made with <span className="heart">❤️</span> in SF<span className="bridge">🌉</span> w/ <span className="cloudflare-ref">Cloudflare <a href="https://developers.cloudflare.com/autorag/">AutoRAG</a>, <a href="https://developers.cloudflare.com/durable-objects/get-started/">Durable Objects</a>, <a href="https://developers.cloudflare.com/workers-ai/models/gpt-oss-120b/">OpenAI gpt-oss-120b</a> on Workers AI, <a href="https://developers.cloudflare.com/browser-rendering">Browser Rendering</a>, <a href="https://developers.cloudflare.com/workers/">Workers</a> and <a href="https://developers.cloudflare.com/r2/">R2</a></span>. Code on GitHub <a href="https://github.com/elizabethsiegle/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss.git">here</a></strong>
       </Footer>
     </AppContainer>
   );
