@@ -670,7 +670,7 @@ const App: React.FC = () => {
           value={newMessage}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
-          placeholder="✨ Ask about the Taylor Swift New Heights podcast or Travis GQ article..."
+          placeholder="✨ Ask about the 2 hour-long Taylor Swift New Heights podcast or Travis GQ article..."
           disabled={isLoading}
         />
         <Button onClick={sendMessage} disabled={isLoading}>
