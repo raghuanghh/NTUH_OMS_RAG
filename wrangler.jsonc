@@ -20,6 +20,11 @@
       "new_classes": ["ChatState"]
     }
   ],
+  "r2_buckets": 
+	[{
+    "binding": "R2_BUCKET",
+	"bucket_name": "taylor-rag-articles"
+}],
   "ai": {
     "binding": "AI"
   },
