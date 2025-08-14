@@ -610,14 +610,14 @@ const App: React.FC = () => {
           <div className="jersey-number taylor-thirteen">13</div>
           <div className="jersey-number">12</div>
         </div>
-        <h1>🏈 Taylor & Travis Chat ✨</h1>
-        <div className="subtitle">✨ "It's a love story, baby just say yes" to New Heights insights! 🏈</div>
+        <h1>🏈 Chat with the Taylor Swift New Heights podcast and Travis GQ article ✨</h1>
+        <div className="subtitle">✨ "It's a loaf story, baby just say yeast" to New Heights insights! 🏈</div>
       </Header>
 
       <IntroSection>
-        <h3>💫 Chat with the Sources ✨</h3>
+        <h3>💫 Chat w/ the Sources ✨</h3>
         <p>
-          Ask me anything about Taylor Swift's appearance on the New Heights podcast or Travis Kelce's GQ interview! 
+          Ask a LLM anything about Taylor Swift's appearance on the New Heights podcast on August 12, 2025 or Travis Kelce's GQ interview! 
           I have access to both transcripts and can share insights about their conversations.
         </p>
         <div className="source-links">
