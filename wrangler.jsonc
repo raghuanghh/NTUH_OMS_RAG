@@ -3,6 +3,7 @@
 	"name": "taylor-newheights-rag",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-08-13",
+	"compatibility_flags": ["nodejs_compat"],
 	"observability": {
 		"enabled": true
 	},
@@ -27,6 +28,9 @@
 }],
   "ai": {
     "binding": "AI"
+  },
+  "browser": {
+    "binding": "BROWSER"
   },
   "assets": {
 		"directory": "./public",

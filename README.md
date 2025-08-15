@@ -34,7 +34,7 @@ npm install -g wrangler
 ```
 
 #### Installation
-1. Clone and install dependencies:
+0. Clone and install dependencies:
 ```bash
 git clone https://github.com/elizabethsiegle/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss
 cd taylor-newheights-rag
@@ -42,14 +42,15 @@ npm install
 npm install --save-dev esbuild @types/react @types/react-dom
 ```
 
-2. Configure wrangler.jsonc (see mine)
+1. Configure wrangler.jsonc (see mine)
 
-3. Auth with Cloudflare/login 
+2. Auth with Cloudflare/login 
 ```bash
 wrangler login
 ```
+3. [Download the YouTube podcast transcription](https://www.youtube-transcript.io/videos?id=M2lX9XESvDE) and hit the /scrape-gq endpoint to scrape the GQ article text. Save it to a .txt file. 
 
-4. Set up R2 bucket with scraped GQ article and New Heights transcript
+4. Set up R2 bucket with scraped GQ article and New Heights transcript from the previous step.
 ```bash
 wrangler r2 bucket create taylor-rag-articles
 wrangler r2 object put taylor-rag-articles/travisgq.txt --file ./path/to/travisgq.txt

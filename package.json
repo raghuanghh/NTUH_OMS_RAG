@@ -11,6 +11,7 @@
 		"build": "esbuild src/client.tsx --bundle --outfile=public/bundle.js --format=iife --define:process.env.NODE_ENV='\"production\"' --minify"
 	},
 	"dependencies": {
+		"@cloudflare/puppeteer": "^1.0.4",
 		"@emotion/react": "^11.11.3",
 		"@emotion/styled": "^11.11.0",
 		"react": "^18.2.0",

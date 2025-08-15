@@ -5,10 +5,6 @@ interface ChatMessage {
     isAI?: boolean;
   }
   
-  interface ChatStateData {
-    messages: ChatMessage[];
-  }
-  
   interface AIResponse {
     object: string;
     search_query: string;
@@ -81,8 +77,6 @@ interface ChatMessage {
           let responseText: string;
   
           if (typeof aiResponse !== 'string' && aiResponse.data?.length === 0) {
-  
-              // No matching documents
               const messages = [
                   { role: "system", content: "You are a friendly assistant" },
                   {

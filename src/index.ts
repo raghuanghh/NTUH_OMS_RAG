@@ -20,9 +20,6 @@ async function scrapeGQArticle(env: Env): Promise<string> {
 	try {
 		console.log('Navigating to GQ article...');
 		
-		// Set user agent to avoid bot detection
-		await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36');
-		
 		// Set viewport
 		await page.setViewport({ width: 1280, height: 720 });
 		
@@ -314,7 +311,7 @@ export default {
 				console.log('Scraping GQ article...');
 				const content = await scrapeGQArticle(env);
 				
-				// For copyright compliance, consider showing excerpts rather than full content
+				// Due to copyrights, excerpt shown instead of full article
 				const excerpt = content.length > 2000 ? 
 					content.substring(0, 2000) + '\n\n[Article excerpt shown - Full article available at GQ.com and was scraped for this app]' : 
 					content;
