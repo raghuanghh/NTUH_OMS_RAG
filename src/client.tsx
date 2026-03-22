@@ -21,7 +21,7 @@ const AppContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #ff8c00 0%, #ff6347 50%, #ffd700 100%);
+  background: linear-gradient(135deg, #0a1628 0%, #0d2b5e 50%, #1a3a6b 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: relative;
 
@@ -33,11 +33,11 @@ const AppContainer = styled.div`
     right: 0;
     bottom: 0;
     background-image: 
-      radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 2px, transparent 2px),
-      radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.4) 1px, transparent 1px),
-      radial-gradient(circle at 40% 60%, rgba(255, 215, 0, 0.3) 3px, transparent 3px),
-      radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.2) 2px, transparent 2px),
-      radial-gradient(circle at 10% 80%, rgba(255, 140, 0, 0.3) 2px, transparent 2px);
+      radial-gradient(circle at 20% 30%, rgba(74, 158, 255, 0.2) 2px, transparent 2px),
+      radial-gradient(circle at 80% 70%, rgba(30, 100, 200, 0.3) 1px, transparent 1px),
+      radial-gradient(circle at 40% 60%, rgba(74, 158, 255, 0.2) 3px, transparent 3px),
+      radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.1) 2px, transparent 2px),
+      radial-gradient(circle at 10% 80%, rgba(30, 100, 200, 0.2) 2px, transparent 2px);
     background-size: 100px 100px, 150px 150px, 200px 200px, 120px 120px, 180px 180px;
     pointer-events: none;
   }
@@ -52,7 +52,7 @@ const Header = styled.div`
   position: relative;
   
   &::before {
-    content: '✨';
+    content: '🏥';
     position: absolute;
     top: 15px;
     left: 20px;
@@ -61,7 +61,7 @@ const Header = styled.div`
   }
 
   &::after {
-    content: '⭐';
+    content: '⚕️';
     position: absolute;
     bottom: 15px;
     right: 70px;
@@ -92,7 +92,7 @@ const Header = styled.div`
   }
 
   .jersey-number {
-    background: #dc143c;
+    background: #1e64c8;
     color: white;
     width: 32px;
     height: 32px;
@@ -106,8 +106,8 @@ const Header = styled.div`
   }
 
   .taylor-thirteen {
-    background: #ffd700;
-    color: #333;
+    background: #4a9eff;
+    color: white;
   }
 `;
 
@@ -237,7 +237,7 @@ const ChatContainer = styled.div`
 
 const MessageBubble = styled.div<{ isAI?: boolean }>`
   background: ${props => props.isAI 
-    ? 'rgba(220, 20, 60, 0.9)'
+    ? 'rgba(13, 71, 161, 0.9)'
     : 'rgba(255, 255, 255, 0.95)'
   };
   padding: 12px 16px;
@@ -252,12 +252,12 @@ const MessageBubble = styled.div<{ isAI?: boolean }>`
   position: relative;
   
   &::before {
-    content: ${props => props.isAI ? "'🏈 ✨'" : "'🎤 💛'"};
+    content: ${props => props.isAI ? "'🏥 ⚕️'" : "'👤 💬'"};
     position: absolute;
     top: -8px;
     ${props => props.isAI ? 'right: -8px;' : 'left: -8px;'}
     font-size: 1rem;
-    background: ${props => props.isAI ? 'rgba(220, 20, 60, 0.9)' : 'rgba(255, 215, 0, 0.9)'};
+    background: ${props => props.isAI ? 'rgba(13, 71, 161, 0.9)' : 'rgba(74, 158, 255, 0.9)'};
     padding: 2px 6px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -280,7 +280,7 @@ const MessageContent = styled.div<{ isAI?: boolean }>`
 `;
 
 const LoadingMessage = styled(MessageBubble)`
-  background: rgba(220, 20, 60, 0.9);
+  background: rgba(13, 71, 161, 0.9);
   align-self: flex-end;
   
   .loading-text {
@@ -351,8 +351,8 @@ const Input = styled.input`
 const Button = styled.button<{ variant?: 'secondary' }>`
   padding: 12px 20px;
   background: ${props => props.variant === 'secondary' 
-    ? 'rgba(255, 140, 0, 0.8)'
-    : '#dc143c'
+    ? 'rgba(74, 158, 255, 0.8)'
+    : '#1e64c8'
   };
   color: white;
   border: none;
@@ -508,8 +508,8 @@ const App: React.FC = () => {
           <div className="jersey-number taylor-thirteen">13</div>
           <div className="jersey-number">12</div>
         </div>
-        <h1>🏈 Chat w/ the Taylor Swift New Heights podcast and Travis GQ article ✨</h1>
-        <div className="subtitle">✨ "It's a loaf story, baby just say yeast" to New Heights insights! 🏈</div>
+        <h1>🏥 NTUH_OMS_RAG</h1>
+        <div className="subtitle">台大醫院口腔顎面外科 AI 智能查詢系統 | Powered by Cloudflare AutoRAG</div>
       </Header>
 
       <IntroSection>

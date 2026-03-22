@@ -9,7 +9,7 @@ Error generating stack: `+l.message+`
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #ff8c00 0%, #ff6347 50%, #ffd700 100%);
+  background: linear-gradient(135deg, #0a1628 0%, #0d2b5e 50%, #1a3a6b 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   position: relative;
 
@@ -21,11 +21,11 @@ Error generating stack: `+l.message+`
     right: 0;
     bottom: 0;
     background-image: 
-      radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 2px, transparent 2px),
-      radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.4) 1px, transparent 1px),
-      radial-gradient(circle at 40% 60%, rgba(255, 215, 0, 0.3) 3px, transparent 3px),
-      radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.2) 2px, transparent 2px),
-      radial-gradient(circle at 10% 80%, rgba(255, 140, 0, 0.3) 2px, transparent 2px);
+      radial-gradient(circle at 20% 30%, rgba(74, 158, 255, 0.2) 2px, transparent 2px),
+      radial-gradient(circle at 80% 70%, rgba(30, 100, 200, 0.3) 1px, transparent 1px),
+      radial-gradient(circle at 40% 60%, rgba(74, 158, 255, 0.2) 3px, transparent 3px),
+      radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.1) 2px, transparent 2px),
+      radial-gradient(circle at 10% 80%, rgba(30, 100, 200, 0.2) 2px, transparent 2px);
     background-size: 100px 100px, 150px 150px, 200px 200px, 120px 120px, 180px 180px;
     pointer-events: none;
   }
@@ -38,7 +38,7 @@ Error generating stack: `+l.message+`
   position: relative;
   
   &::before {
-    content: '✨';
+    content: '🏥';
     position: absolute;
     top: 15px;
     left: 20px;
@@ -47,7 +47,7 @@ Error generating stack: `+l.message+`
   }
 
   &::after {
-    content: '⭐';
+    content: '⚕️';
     position: absolute;
     bottom: 15px;
     right: 70px;
@@ -78,7 +78,7 @@ Error generating stack: `+l.message+`
   }
 
   .jersey-number {
-    background: #dc143c;
+    background: #1e64c8;
     color: white;
     width: 32px;
     height: 32px;
@@ -92,8 +92,8 @@ Error generating stack: `+l.message+`
   }
 
   .taylor-thirteen {
-    background: #ffd700;
-    color: #333;
+    background: #4a9eff;
+    color: white;
   }
 `,h0=Se.div`
   background: rgba(255, 255, 255, 0.1);
@@ -216,7 +216,7 @@ Error generating stack: `+l.message+`
     border-radius: 3px;
   }
 `,Zd=Se.div`
-  background: ${e=>e.isAI?"rgba(220, 20, 60, 0.9)":"rgba(255, 255, 255, 0.95)"};
+  background: ${e=>e.isAI?"rgba(13, 71, 161, 0.9)":"rgba(255, 255, 255, 0.95)"};
   padding: 12px 16px;
   border-radius: 18px;
   max-width: 75%;
@@ -226,12 +226,12 @@ Error generating stack: `+l.message+`
   position: relative;
   
   &::before {
-    content: ${e=>e.isAI?"'\u{1F3C8} \u2728'":"'\u{1F3A4} \u{1F49B}'"};
+    content: ${e=>e.isAI?"'\u{1F3E5} \u2695\uFE0F'":"'\u{1F464} \u{1F4AC}'"};
     position: absolute;
     top: -8px;
     ${e=>e.isAI?"right: -8px;":"left: -8px;"}
     font-size: 1rem;
-    background: ${e=>e.isAI?"rgba(220, 20, 60, 0.9)":"rgba(255, 215, 0, 0.9)"};
+    background: ${e=>e.isAI?"rgba(13, 71, 161, 0.9)":"rgba(74, 158, 255, 0.9)"};
     padding: 2px 6px;
     border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.3);
@@ -250,7 +250,7 @@ Error generating stack: `+l.message+`
   line-height: 1.4;
   word-break: break-word;
 `,g0=Se(Zd)`
-  background: rgba(220, 20, 60, 0.9);
+  background: rgba(13, 71, 161, 0.9);
   align-self: flex-end;
   
   .loading-text {
@@ -314,7 +314,7 @@ Error generating stack: `+l.message+`
   }
 `,Yd=Se.button`
   padding: 12px 20px;
-  background: ${e=>e.variant==="secondary"?"rgba(255, 140, 0, 0.8)":"#dc143c"};
+  background: ${e=>e.variant==="secondary"?"rgba(74, 158, 255, 0.8)":"#1e64c8"};
   color: white;
   border: none;
   border-radius: 20px;
@@ -382,7 +382,7 @@ Error generating stack: `+l.message+`
     color: #ffd700;
     font-weight: 600;
   }
-`,k0=()=>{let[e,t]=(0,bt.useState)([]),[n,r]=(0,bt.useState)(""),[o,l]=(0,bt.useState)(null),[i,u]=(0,bt.useState)(!1);(0,bt.useEffect)(()=>{fetch("/chat/init",{method:"POST"}).then(p=>p.json()).then(p=>(l(p.id),fetch(`/chat/${p.id}`))).then(p=>p.json()).then(p=>t(p.messages)).catch(console.error)},[]);let s=async()=>{if(!(!n.trim()||!o))try{u(!0);let p={id:crypto.randomUUID(),text:n,timestamp:Date.now(),isAI:!1};t(v=>[...v,p]),r("");let g=await(await fetch(`/chat/${o}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:n})})).json();if(g.messages&&Array.isArray(g.messages)){let v=g.messages[1];v&&t(_=>[..._,v])}}catch(p){console.error("Error sending message:",p)}finally{u(!1)}},c=async()=>{if(o)try{await fetch(`/chat/${o}`,{method:"DELETE"}),t([])}catch(p){console.error("Error clearing chat:",p)}},m=p=>{r(p.target.value)},h=p=>{p.key==="Enter"&&s()};return(0,R.jsxs)(p0,{children:[(0,R.jsxs)(m0,{children:[(0,R.jsxs)("div",{className:"jersey-numbers",children:[(0,R.jsx)("div",{className:"jersey-number taylor-thirteen",children:"13"}),(0,R.jsx)("div",{className:"jersey-number",children:"12"})]}),(0,R.jsx)("h1",{children:"\u{1F3C8} Chat w/ the Taylor Swift New Heights podcast and Travis GQ article \u2728"}),(0,R.jsx)("div",{className:"subtitle",children:`\u2728 "It's a loaf story, baby just say yeast" to New Heights insights! \u{1F3C8}`})]}),(0,R.jsxs)(h0,{children:[(0,R.jsx)("h3",{children:"Chat with the Sources"}),(0,R.jsx)("p",{children:"Ask a LLM anything about Taylor Swift's appearance on the New Heights podcast on August 12, 2025 or Travis Kelce's GQ interview! I have access to both transcripts and can share insights about their conversations."}),(0,R.jsxs)("div",{className:"source-links",children:[(0,R.jsx)("a",{href:"/transcript",className:"source-link",target:"_blank",children:"New Heights Transcript (2 hours long!\u{1F3A4})"}),(0,R.jsx)("a",{href:"/gq-article",className:"source-link",target:"_blank",children:"Travis GQ Interview Article \u{1F4F0}"})]})]}),(0,R.jsxs)(v0,{children:[e.map(p=>{let x;if(typeof p.text=="string")x=p.text;else if(p.text&&typeof p.text=="object"){let g=p.text;g.response?x=g.response:g.text?x=g.text:g.message?x=g.message:x=JSON.stringify(g)}else x=String(p.text);return(0,R.jsx)(Zd,{isAI:p.isAI,children:(0,R.jsx)(y0,{isAI:p.isAI,children:x})},p.id)}),i&&(0,R.jsx)(g0,{isAI:!0,children:(0,R.jsx)("div",{className:"loading-text",children:"Thinking"})})]}),(0,R.jsxs)(w0,{children:[(0,R.jsx)(x0,{value:n,onChange:m,onKeyPress:h,placeholder:"Ask about key quotes from the Taylor Swift New Heights podcast or a summary of the Travis GQ article...",disabled:i}),(0,R.jsx)(Yd,{onClick:s,disabled:i,children:"Send"}),(0,R.jsx)(Yd,{variant:"secondary",onClick:c,disabled:i,children:"Clear"})]}),(0,R.jsx)(S0,{children:(0,R.jsxs)("strong",{children:["made with ",(0,R.jsx)("span",{className:"heart",children:"\u2764\uFE0F"})," in SF",(0,R.jsx)("span",{className:"bridge",children:"\u{1F309}"})," w/ ",(0,R.jsxs)("span",{className:"cloudflare-ref",children:["Cloudflare ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/autorag/",children:"AutoRAG"}),", ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/durable-objects/get-started/",children:"Durable Objects"}),", ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/workers-ai/models/gpt-oss-120b/",children:"OpenAI gpt-oss-120b"})," on Workers AI, ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/browser-rendering",children:"Browser Rendering"}),", ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/workers/",children:"Workers"})," and ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/r2/",children:"R2"})]}),". Code on GitHub ",(0,R.jsx)("a",{href:"https://github.com/elizabethsiegle/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss.git",children:"here"})]})})]})},Gd=document.getElementById("root");Gd&&(0,Xd.createRoot)(Gd).render((0,R.jsx)(k0,{}));})();
+`,k0=()=>{let[e,t]=(0,bt.useState)([]),[n,r]=(0,bt.useState)(""),[o,l]=(0,bt.useState)(null),[i,u]=(0,bt.useState)(!1);(0,bt.useEffect)(()=>{fetch("/chat/init",{method:"POST"}).then(p=>p.json()).then(p=>(l(p.id),fetch(`/chat/${p.id}`))).then(p=>p.json()).then(p=>t(p.messages)).catch(console.error)},[]);let s=async()=>{if(!(!n.trim()||!o))try{u(!0);let p={id:crypto.randomUUID(),text:n,timestamp:Date.now(),isAI:!1};t(v=>[...v,p]),r("");let g=await(await fetch(`/chat/${o}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:n})})).json();if(g.messages&&Array.isArray(g.messages)){let v=g.messages[1];v&&t(_=>[..._,v])}}catch(p){console.error("Error sending message:",p)}finally{u(!1)}},c=async()=>{if(o)try{await fetch(`/chat/${o}`,{method:"DELETE"}),t([])}catch(p){console.error("Error clearing chat:",p)}},m=p=>{r(p.target.value)},h=p=>{p.key==="Enter"&&s()};return(0,R.jsxs)(p0,{children:[(0,R.jsxs)(m0,{children:[(0,R.jsxs)("div",{className:"jersey-numbers",children:[(0,R.jsx)("div",{className:"jersey-number taylor-thirteen",children:"13"}),(0,R.jsx)("div",{className:"jersey-number",children:"12"})]}),(0,R.jsx)("h1",{children:"\u{1F3E5} NTUH_OMS_RAG"}),(0,R.jsx)("div",{className:"subtitle",children:"\u53F0\u5927\u91AB\u9662\u53E3\u8154\u984E\u9762\u5916\u79D1 AI \u667A\u80FD\u67E5\u8A62\u7CFB\u7D71 | Powered by Cloudflare AutoRAG"})]}),(0,R.jsxs)(h0,{children:[(0,R.jsx)("h3",{children:"Chat with the Sources"}),(0,R.jsx)("p",{children:"Ask a LLM anything about Taylor Swift's appearance on the New Heights podcast on August 12, 2025 or Travis Kelce's GQ interview! I have access to both transcripts and can share insights about their conversations."}),(0,R.jsxs)("div",{className:"source-links",children:[(0,R.jsx)("a",{href:"/transcript",className:"source-link",target:"_blank",children:"New Heights Transcript (2 hours long!\u{1F3A4})"}),(0,R.jsx)("a",{href:"/gq-article",className:"source-link",target:"_blank",children:"Travis GQ Interview Article \u{1F4F0}"})]})]}),(0,R.jsxs)(v0,{children:[e.map(p=>{let x;if(typeof p.text=="string")x=p.text;else if(p.text&&typeof p.text=="object"){let g=p.text;g.response?x=g.response:g.text?x=g.text:g.message?x=g.message:x=JSON.stringify(g)}else x=String(p.text);return(0,R.jsx)(Zd,{isAI:p.isAI,children:(0,R.jsx)(y0,{isAI:p.isAI,children:x})},p.id)}),i&&(0,R.jsx)(g0,{isAI:!0,children:(0,R.jsx)("div",{className:"loading-text",children:"Thinking"})})]}),(0,R.jsxs)(w0,{children:[(0,R.jsx)(x0,{value:n,onChange:m,onKeyPress:h,placeholder:"Ask about key quotes from the Taylor Swift New Heights podcast or a summary of the Travis GQ article...",disabled:i}),(0,R.jsx)(Yd,{onClick:s,disabled:i,children:"Send"}),(0,R.jsx)(Yd,{variant:"secondary",onClick:c,disabled:i,children:"Clear"})]}),(0,R.jsx)(S0,{children:(0,R.jsxs)("strong",{children:["made with ",(0,R.jsx)("span",{className:"heart",children:"\u2764\uFE0F"})," in SF",(0,R.jsx)("span",{className:"bridge",children:"\u{1F309}"})," w/ ",(0,R.jsxs)("span",{className:"cloudflare-ref",children:["Cloudflare ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/autorag/",children:"AutoRAG"}),", ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/durable-objects/get-started/",children:"Durable Objects"}),", ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/workers-ai/models/gpt-oss-120b/",children:"OpenAI gpt-oss-120b"})," on Workers AI, ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/browser-rendering",children:"Browser Rendering"}),", ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/workers/",children:"Workers"})," and ",(0,R.jsx)("a",{href:"https://developers.cloudflare.com/r2/",children:"R2"})]}),". Code on GitHub ",(0,R.jsx)("a",{href:"https://github.com/elizabethsiegle/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss.git",children:"here"})]})})]})},Gd=document.getElementById("root");Gd&&(0,Xd.createRoot)(Gd).render((0,R.jsx)(k0,{}));})();
 /*! Bundled license information:
 
 react/cjs/react.production.min.js:

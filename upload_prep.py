@@ -19,7 +19,7 @@ def main():
     ndjson_data = []
     for i, chunk in enumerate(chunks):
         record = {
-            "id": chunk["id"],
+            "id": f"vec_{i}",
             "values": embeddings[i].tolist(), # 轉成數學陣列
             "metadata": {
                 "content": chunk["content"],
@@ -32,7 +32,7 @@ def main():
     with open("vectorize_upload.ndjson", "w", encoding="utf-8") as f:
         f.write("\n".join(ndjson_data))
 
-    print("✅ 大功告成！已生成 vectorize_upload.ndjson，準備上傳！")
+    print("✅ 已生成 vectorize_upload.ndjson，準備上傳！")
 
 if __name__ == "__main__":
     main()

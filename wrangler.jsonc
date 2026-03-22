@@ -1,6 +1,6 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "taylor-newheights-rag",
+	"name": "ntuh-oms-rag",
 	"main": "src/index.ts",
 	"compatibility_date": "2025-08-13",
 	"compatibility_flags": ["nodejs_compat"],
@@ -18,7 +18,7 @@
   "migrations": [
     {
       "tag": "v1", 
-      "new_classes": ["ChatState"]
+      "new_sqlite_classes": ["ChatState"]
     }
   ],
   "r2_buckets": 
@@ -29,11 +29,14 @@
   "ai": {
     "binding": "AI"
   },
-  "browser": {
-    "binding": "BROWSER"
-  },
   "assets": {
 		"directory": "./public",
 		"binding": "ASSETS"
-	}
+	},
+  "vectorize": [
+    {
+      "binding": "VECTORIZE_INDEX",
+      "index_name": "medical-index"
+    }
+  ]
 }
