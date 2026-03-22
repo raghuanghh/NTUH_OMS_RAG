@@ -165,3 +165,8 @@ dist
 .env*
 !.env.example
 .wrangler/
+
+# Large data files (not suitable for git)
+vectorize_upload.ndjson
+Reference_data/
+public/bundle.js.map
