@@ -17,159 +17,119 @@ interface ChatResponse {
   messages: Message[];
 }
 
+// ============================================================
+// 🏥 醫院公告設定區 — 在此修改醫院推廣內容
+// ============================================================
+const HOSPITAL_INTRO_TITLE = '口腔顎面外科衛教查詢';
+
+const HOSPITAL_INTRO_DESC =
+  '輸入手術名稱、術後問題或相關症狀，AI 將根據本科臨床指引為您提供詳細衛教資訊。';
+
+const HOSPITAL_INTRO_WARNING = '⚠️ 本系統僅供衛教參考，實際治療請諮詢您的主治醫師。';
+
+const HOSPITAL_ANNOUNCEMENTS: { label: string; href: string; emoji: string }[] = [
+  // 範例（取消註解並填入真實連結即可啟用）：
+  // { label: '瀏覽所有衛教資料', href: 'https://www.ntuh.gov.tw/OMS/', emoji: '📋' },
+  // { label: '門診預約掛號', href: 'https://reg.ntuh.gov.tw', emoji: '📅' },
+  // { label: '術後照護說明', href: 'https://www.ntuh.gov.tw/OMS/care', emoji: '🦷' },
+];
+// ============================================================
+
 const AppContainer = styled.div`
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #0a1628 0%, #0d2b5e 50%, #1a3a6b 100%);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  position: relative;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: 
-      radial-gradient(circle at 20% 30%, rgba(74, 158, 255, 0.2) 2px, transparent 2px),
-      radial-gradient(circle at 80% 70%, rgba(30, 100, 200, 0.3) 1px, transparent 1px),
-      radial-gradient(circle at 40% 60%, rgba(74, 158, 255, 0.2) 3px, transparent 3px),
-      radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.1) 2px, transparent 2px),
-      radial-gradient(circle at 10% 80%, rgba(30, 100, 200, 0.2) 2px, transparent 2px);
-    background-size: 100px 100px, 150px 150px, 200px 200px, 120px 120px, 180px 180px;
-    pointer-events: none;
-  }
+  background: #eef2fb;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
 `;
 
 const Header = styled.div`
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  padding: 20px;
+  background: white;
+  padding: 18px 24px;
   text-align: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   position: relative;
-  
+
   &::before {
-    content: '🏥';
+    content: '🦷';
     position: absolute;
-    top: 15px;
+    top: 50%;
     left: 20px;
+    transform: translateY(-50%);
     font-size: 1.5rem;
-    opacity: 0.7;
   }
 
   &::after {
     content: '⚕️';
     position: absolute;
-    bottom: 15px;
-    right: 70px;
-    font-size: 1.2rem;
-    opacity: 0.6;
-  }
-  
-  h1 {
-    color: white;
-    font-size: 1.8rem;
-    font-weight: 700;
-    margin: 0 0 5px 0;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
-  }
-  
-  .subtitle {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-
-  .jersey-numbers {
-    position: absolute;
-    top: 20px;
+    top: 50%;
     right: 20px;
-    display: flex;
-    gap: 8px;
+    transform: translateY(-50%);
+    font-size: 1.3rem;
+    opacity: 0.5;
   }
 
-  .jersey-number {
-    background: #1e64c8;
-    color: white;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  h1 {
+    color: #1a56c4;
+    font-size: 1.7rem;
     font-weight: 700;
-    font-size: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    margin: 0 0 4px 0;
   }
 
+  .subtitle {
+    color: #6b7a99;
+    font-size: 0.88rem;
+    font-weight: 400;
+  }
 `;
 
-// ============================================================
-// 🏥 醫院公告設定區 — 在此修改醫院推廣內容
-// ============================================================
-// 說明：
-//   HOSPITAL_ANNOUNCEMENTS 陣列中，每一筆物件代表一個公告連結。
-//   格式：{ label: '顯示文字', href: '連結網址', emoji: '圖示' }
-//   留空陣列 [] 則不顯示任何連結按鈕。
-// ============================================================
-const HOSPITAL_INTRO_TITLE = '臺大醫院口腔顎面外科 AI 智能助理';
-
-const HOSPITAL_INTRO_DESC =
-  '您好！我是臺大醫院口腔顎面外科的 AI 衛教助理，' +
-  '可協助您查詢術前術後照護、常見手術資訊及門診注意事項。' +
-  '所有回答均依據本科臨床指引，如有急迫醫療問題請直接聯繫診間。';
-
-const HOSPITAL_ANNOUNCEMENTS: { label: string; href: string; emoji: string }[] = [
-  // 範例（取消註解並填入真實連結即可啟用）：
-  // { label: '植牙衛教資訊', href: 'https://www.ntuh.gov.tw/OMS/...', emoji: '🦷' },
-  // { label: '正顎手術說明', href: 'https://www.ntuh.gov.tw/OMS/...', emoji: '📋' },
-  // { label: '門診預約掛號', href: 'https://reg.ntuh.gov.tw', emoji: '📅' },
-];
-
 const IntroSection = styled.div`
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  padding: 16px 20px;
+  background: white;
   margin: 16px 20px 0 20px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 18px 22px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  border: 1px solid #e4eaf7;
   position: relative;
 
   &::before {
-    content: '💫';
+    content: '📋';
     position: absolute;
-    top: 8px;
-    left: 12px;
-    font-size: 1.2rem;
-    opacity: 0.8;
+    top: 14px;
+    left: 16px;
+    font-size: 1.1rem;
   }
 
   &::after {
-    content: '🔥';
+    content: '✏️';
     position: absolute;
-    top: 8px;
-    right: 12px;
-    font-size: 1.2rem;
-    opacity: 0.8;
+    top: 14px;
+    right: 16px;
+    font-size: 1rem;
+    opacity: 0.4;
   }
 
   h3 {
-    color: white;
-    font-size: 1.1rem;
-    font-weight: 600;
+    color: #1a56c4;
+    font-size: 1rem;
+    font-weight: 700;
     margin: 0 0 8px 0;
     text-align: center;
   }
 
-  p {
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 0.9rem;
-    line-height: 1.4;
-    margin: 0 0 12px 0;
+  .desc {
+    color: #444;
+    font-size: 0.88rem;
+    line-height: 1.6;
     text-align: center;
+    margin: 0 0 6px 0;
+  }
+
+  .warning {
+    color: #e67e22;
+    font-size: 0.82rem;
+    text-align: center;
+    margin: 0 0 12px 0;
   }
 
   .source-links {
@@ -177,34 +137,23 @@ const IntroSection = styled.div`
     gap: 10px;
     justify-content: center;
     flex-wrap: wrap;
+    margin-top: 8px;
   }
 
   .source-link {
-    background: rgba(255, 255, 255, 0.2);
+    background: #1a56c4;
     color: white;
-    padding: 6px 12px;
-    border-radius: 16px;
+    padding: 7px 16px;
+    border-radius: 20px;
     text-decoration: none;
     font-weight: 500;
     font-size: 0.85rem;
-    transition: background-color 0.2s ease;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    position: relative;
+    transition: background 0.2s;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.3);
+      background: #1445a3;
       text-decoration: none;
       color: white;
-    }
-
-    &:first-of-type::before {
-      content: '🎤';
-      margin-right: 4px;
-    }
-
-    &:last-of-type::before {
-      content: '🏈';
-      margin-right: 4px;
     }
   }
 `;
@@ -215,235 +164,137 @@ const ChatContainer = styled.div`
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  position: relative;
-
-  &::before {
-    content: '✨';
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 1.5rem;
-    opacity: 0.3;
-    z-index: 0;
-  }
-
-  &::after {
-    content: '💫';
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    font-size: 1.3rem;
-    opacity: 0.3;
-    z-index: 0;
-  }
+  gap: 14px;
 
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 5px;
   }
-
   &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
+    background: transparent;
   }
-
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
+    background: #c5cfe8;
     border-radius: 3px;
   }
+`;
+
+const MessageRow = styled.div<{ isAI?: boolean }>`
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+  justify-content: ${props => props.isAI ? 'flex-end' : 'flex-start'};
+`;
+
+const Avatar = styled.div<{ isAI?: boolean }>`
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: ${props => props.isAI ? '#1a56c4' : '#e4eaf7'};
+  order: ${props => props.isAI ? 1 : 0};
 `;
 
 const MessageBubble = styled.div<{ isAI?: boolean }>`
-  background: ${props => props.isAI 
-    ? 'rgba(13, 71, 161, 0.9)'
-    : 'rgba(255, 255, 255, 0.95)'
-  };
-  padding: 12px 16px;
-  border-radius: 18px;
-  max-width: 75%;
-  align-self: ${props => props.isAI ? 'flex-end' : 'flex-start'};
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border: 1px solid ${props => props.isAI 
-    ? 'rgba(255, 255, 255, 0.2)' 
-    : 'rgba(0, 0, 0, 0.1)'
-  };
-  position: relative;
-  
-  &::before {
-    content: ${props => props.isAI ? "'🏥 ⚕️'" : "'👤 💬'"};
-    position: absolute;
-    top: -8px;
-    ${props => props.isAI ? 'right: -8px;' : 'left: -8px;'}
-    font-size: 1rem;
-    background: ${props => props.isAI ? 'rgba(13, 71, 161, 0.9)' : 'rgba(74, 158, 255, 0.9)'};
-    padding: 2px 6px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-  }
-
-  &::after {
-    content: ${props => props.isAI ? "''" : "'✨'"};
-    position: absolute;
-    bottom: -5px;
-    ${props => props.isAI ? 'left: -5px;' : 'right: -5px;'}
-    font-size: 1.2rem;
-  }
-`;
-
-const MessageContent = styled.div<{ isAI?: boolean }>`
-  color: ${props => props.isAI ? 'white' : '#333'};
-  font-size: 0.95rem;
-  line-height: 1.4;
+  background: ${props => props.isAI ? '#1a56c4' : 'white'};
+  color: ${props => props.isAI ? 'white' : '#2c3e50'};
+  padding: 11px 16px;
+  border-radius: ${props => props.isAI ? '18px 4px 18px 18px' : '4px 18px 18px 18px'};
+  max-width: 72%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  font-size: 0.93rem;
+  line-height: 1.6;
   word-break: break-word;
+  border: ${props => props.isAI ? 'none' : '1px solid #e4eaf7'};
 `;
 
-const LoadingMessage = styled(MessageBubble)`
-  background: rgba(13, 71, 161, 0.9);
-  align-self: flex-end;
-  
-  .loading-text {
-    color: white;
-    font-size: 0.95rem;
-    
-    &::after {
-      content: '...';
-      animation: dots 1.5s steps(4, end) infinite;
-    }
+const LoadingBubble = styled(MessageBubble)`
+  background: #1a56c4;
+  color: white;
+  .loading-text::after {
+    content: '...';
+    animation: dots 1.2s steps(4, end) infinite;
   }
-
   @keyframes dots {
-    0%, 20% { color: rgba(255, 255, 255, 0.4); }
-    40% { color: white; }
-    100% { color: rgba(255, 255, 255, 0.4); }
+    0%, 20% { opacity: 0.3; }
+    60% { opacity: 1; }
+    100% { opacity: 0.3; }
   }
 `;
 
 const InputContainer = styled.div`
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 14px 20px;
+  background: white;
+  border-top: 1px solid #e4eaf7;
   display: flex;
   gap: 10px;
-  position: relative;
-
-  &::before {
-    content: '💛';
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    font-size: 1rem;
-    opacity: 0.7;
-  }
-
-  &::after {
-    content: '⚡';
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: 1rem;
-    opacity: 0.7;
-  }
+  align-items: center;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 `;
 
 const Input = styled.input`
   flex: 1;
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
+  padding: 11px 18px;
+  border: 1.5px solid #c5cfe8;
+  border-radius: 24px;
   outline: none;
-  font-size: 16px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
-  
+  font-size: 15px;
+  background: #f7f9ff;
+  color: #2c3e50;
+  font-family: inherit;
+
   &:focus {
-    border-color: rgba(255, 255, 255, 0.6);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+    border-color: #1a56c4;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(26, 86, 196, 0.1);
   }
 
   &::placeholder {
-    color: rgba(0, 0, 0, 0.5);
+    color: #a0adc4;
   }
 `;
 
 const Button = styled.button<{ variant?: 'secondary' }>`
-  padding: 12px 20px;
-  background: ${props => props.variant === 'secondary' 
-    ? 'rgba(74, 158, 255, 0.8)'
-    : '#1e64c8'
-  };
-  color: white;
-  border: none;
-  border-radius: 20px;
+  padding: 11px 20px;
+  background: ${props => props.variant === 'secondary' ? '#f0f4ff' : '#1a56c4'};
+  color: ${props => props.variant === 'secondary' ? '#1a56c4' : 'white'};
+  border: ${props => props.variant === 'secondary' ? '1.5px solid #c5cfe8' : 'none'};
+  border-radius: 24px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  transition: opacity 0.2s ease;
-  position: relative;
-  
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  font-family: inherit;
+
   &:hover:not(:disabled) {
-    opacity: 0.9;
+    background: ${props => props.variant === 'secondary' ? '#e4eaf7' : '#1445a3'};
   }
 
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
-  }
-
-  &:first-of-type::after {
-    content: '🚀';
-    margin-left: 4px;
-  }
-
-  &:last-of-type::after {
-    content: '🧹';
-    margin-left: 4px;
   }
 `;
 
 const Footer = styled.footer`
-  position: sticky;
-  bottom: 0;
   text-align: center;
-  padding: 12px 20px;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
+  padding: 10px 20px;
+  background: white;
+  color: #8a95b0;
+  font-size: 12px;
+  border-top: 1px solid #e4eaf7;
 
-  &::before {
-    content: '⭐';
-    position: absolute;
-    top: 5px;
-    left: 15px;
-    font-size: 1rem;
-    opacity: 0.6;
-  }
-
-  &::after {
-    content: '✨';
-    position: absolute;
-    top: 5px;
-    right: 15px;
-    font-size: 1rem;
-    opacity: 0.6;
-  }
-
-  .heart {
-    color: #ff1493;
-    margin: 0 2px;
-  }
-
-  .bridge {
-    color: #ffd700;
-    font-weight: 600;
+  a {
+    color: #1a56c4;
+    text-decoration: none;
+    &:hover { text-decoration: underline; }
   }
 `;
-
-
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -474,7 +325,7 @@ const App: React.FC = () => {
         timestamp: Date.now(),
         isAI: false
       };
-      
+
       setMessages(prev => [...prev, userMessage]);
       setNewMessage('');
 
@@ -484,7 +335,7 @@ const App: React.FC = () => {
         body: JSON.stringify({ text: newMessage }),
       });
       const data = await response.json() as { messages: Message[] };
-      
+
       if (data.messages && Array.isArray(data.messages)) {
         const aiMessage = data.messages[1];
         if (aiMessage) {
@@ -500,7 +351,6 @@ const App: React.FC = () => {
 
   const clearChat = async () => {
     if (!chatStateId) return;
-
     try {
       await fetch(`/chat/${chatStateId}`, { method: 'DELETE' });
       setMessages([]);
@@ -514,21 +364,29 @@ const App: React.FC = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      sendMessage();
+    if (e.key === 'Enter') sendMessage();
+  };
+
+  const getTextContent = (msg: Message): string => {
+    if (typeof msg.text === 'string') return msg.text;
+    if (msg.text && typeof msg.text === 'object') {
+      const obj = msg.text as any;
+      return obj.response ?? obj.text ?? obj.message ?? JSON.stringify(obj);
     }
+    return String(msg.text);
   };
 
   return (
     <AppContainer>
       <Header>
-        <h1>🏥 NTUH_OMS_RAG</h1>
-        <div className="subtitle">台大醫院口腔顎面外科 AI 智能查詢系統 | Powered by Cloudflare AutoRAG</div>
+        <h1>🦷 NTUH 口腔顎面外科 AI 助理</h1>
+        <div className="subtitle">台大醫院口腔顎面外科衛教查詢系統 - AI 智慧問答</div>
       </Header>
 
       <IntroSection>
         <h3>{HOSPITAL_INTRO_TITLE}</h3>
-        <p>{HOSPITAL_INTRO_DESC}</p>
+        <p className="desc">{HOSPITAL_INTRO_DESC}</p>
+        <p className="warning">{HOSPITAL_INTRO_WARNING}</p>
         {HOSPITAL_ANNOUNCEMENTS.length > 0 && (
           <div className="source-links">
             {HOSPITAL_ANNOUNCEMENTS.map((item, idx) => (
@@ -539,40 +397,28 @@ const App: React.FC = () => {
           </div>
         )}
       </IntroSection>
-      
+
       <ChatContainer>
-        {messages.map(message => {
-          let content: string;
-          if (typeof message.text === 'string') {
-            content = message.text;
-          } else if (message.text && typeof message.text === 'object') {
-            const obj = message.text as any;
-            if (obj.response) {
-              content = obj.response;
-            } else if (obj.text) {
-              content = obj.text;
-            } else if (obj.message) {
-              content = obj.message;
-            } else {
-              content = JSON.stringify(obj);
-            }
-          } else {
-            content = String(message.text);
-          }
-          
-          return (
-            <MessageBubble key={message.id} isAI={message.isAI}>
-              <MessageContent isAI={message.isAI}>{content}</MessageContent>
+        {messages.map(message => (
+          <MessageRow key={message.id} isAI={message.isAI}>
+            <Avatar isAI={message.isAI}>
+              {message.isAI ? '🤖' : '👤'}
+            </Avatar>
+            <MessageBubble isAI={message.isAI}>
+              {getTextContent(message)}
             </MessageBubble>
-          );
-        })}
+          </MessageRow>
+        ))}
         {isLoading && (
-          <LoadingMessage isAI>
-            <div className="loading-text">Thinking</div>
-          </LoadingMessage>
+          <MessageRow isAI>
+            <Avatar isAI>🤖</Avatar>
+            <LoadingBubble isAI>
+              <div className="loading-text">思考中</div>
+            </LoadingBubble>
+          </MessageRow>
         )}
       </ChatContainer>
-      
+
       <InputContainer>
         <Input
           value={newMessage}
@@ -582,23 +428,18 @@ const App: React.FC = () => {
           disabled={isLoading}
         />
         <Button onClick={sendMessage} disabled={isLoading}>
-          Send
+          查詢 🔍
         </Button>
         <Button variant="secondary" onClick={clearChat} disabled={isLoading}>
-          Clear
+          清除 🗑️
         </Button>
       </InputContainer>
-      
+
       <Footer>
-        <strong>
-          臺大醫院口腔顎面外科 AI 衛教助理 | Powered by{' '}
-          <span className="cloudflare-ref">
-            <a href="https://developers.cloudflare.com/autorag/">Cloudflare AutoRAG</a>、
-            <a href="https://developers.cloudflare.com/durable-objects/get-started/">Durable Objects</a>、
-            <a href="https://developers.cloudflare.com/workers-ai/">Workers AI</a>
-          </span>
-          。本助理僅供衛教參考，不可取代醫師專業診斷。
-        </strong>
+        NTUH OMS RAG - 台大醫院口腔顎面外科衛教系統 | 使用{' '}
+        <a href="https://developers.cloudflare.com/autorag/">Cloudflare AutoRAG</a>、
+        <a href="https://developers.cloudflare.com/workers/">Workers</a> 及{' '}
+        <a href="https://developers.cloudflare.com/r2/">R2</a> 建置
       </Footer>
     </AppContainer>
   );
