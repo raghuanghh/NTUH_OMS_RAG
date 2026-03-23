@@ -1,12 +1,25 @@
+// ============================================================
+// src/index.ts — Cloudflare Worker 入口點
+// 負責：
+//   1. 靜態資源路由（前端 HTML/JS）
+//   2. AI 對話 API 路由（轉發到 ChatState Durable Object）
+//   3. 定義 Cloudflare 環境變數型別 (Env)
+// ============================================================
+
 import { ChatState } from './chatState';
 
+// Cloudflare Workers 環境變數定義
+// 若要新增 binding（如 KV、R2），在此處新增欄位並在 wrangler.jsonc 對應設定
 export interface Env {
-    CHAT_STATE: DurableObjectNamespace;
-    ASSETS: Fetcher;
+    CHAT_STATE: DurableObjectNamespace; // 對話狀態儲存（Durable Object）
+    ASSETS: Fetcher;                     // 靜態資源（public/ 目錄下的前端檔案）
     // 移除了用不到的 Browser (Puppeteer) 設定，讓系統更輕量
 }
 
-// 建立專業的醫療風格基礎網頁
+// ──────────────────────────────────────────────
+// 次要功能：知識來源展示頁面的 HTML 模板
+// 用於顯示單一知識來源的詳細內容（目前未被主流程使用，保留供未來擴充）
+// ──────────────────────────────────────────────
 function createSourcePageHTML(title: string, content: string): string {
     return `
 <!DOCTYPE html>
@@ -100,26 +113,35 @@ function createSourcePageHTML(title: string, content: string): string {
 </html>`;
 }
 
+// ──────────────────────────────────────────────
+// 主要 Worker 請求處理器
+// 所有進來的 HTTP 請求都從這裡分流
+// ──────────────────────────────────────────────
 export default {
     async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
         const url = new URL(request.url);
 
-        // 處理靜態檔案 (網頁前端畫面)
+        // 路由 1：靜態前端資源 (index.html、bundle.js)
+        // → 直接從 Cloudflare Pages Assets 提供，不經過 Worker 邏輯
         if (url.pathname === '/' || url.pathname.startsWith('/bundle.js')) {
             return env.ASSETS.fetch(request);
         }
 
-        // 處理 AI 對話的核心 API
+        // 路由 2：AI 對話 API（/chat/init、/chat/:id）
+        // → 轉發到 ChatState Durable Object 處理
+        // → Durable Object 保證同一個 'chat' 名稱永遠對到同一個實例（確保對話歷史一致）
         if (url.pathname.startsWith('/chat/')) {
             const id = env.CHAT_STATE.idFromName('chat');
             const obj = env.CHAT_STATE.get(id);
 
+            // /chat/init：初始化並回傳 Durable Object 的唯一 ID 給前端
             if (url.pathname === '/chat/init') {
                 return new Response(JSON.stringify({ id: id.toString() }), {
                     headers: { 'Content-Type': 'application/json' },
                 });
             }
 
+            // /chat/:id：GET（取得歷史）、POST（傳送新問題）、DELETE（清除歷史）
             return obj.fetch(request);
         }
 
@@ -127,4 +149,5 @@ export default {
     },
 } satisfies ExportedHandler<Env>;
 
+// 匯出 ChatState，讓 Cloudflare Workers 能夠識別並綁定 Durable Object
 export { ChatState };

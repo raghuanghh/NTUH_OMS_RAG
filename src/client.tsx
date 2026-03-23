@@ -1,40 +1,68 @@
+// ============================================================
+// src/client.tsx — 前端 React 介面
+// 負責：
+//   1. 渲染整個聊天視窗 UI（標題、公告區、對話氣泡、輸入列、頁尾）
+//   2. 與後端 /chat/ API 溝通（傳送問題、取得回覆、清除歷史）
+//   3. 醫院公告設定區（HOSPITAL_* 常數）—— 想修改顯示內容在此區塊
+// ============================================================
+
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import styled from '@emotion/styled';
+import styled from '@emotion/styled'; // CSS-in-JS 樣式庫
 
+// ──────────────────────────────────────────────
+// 型別定義
+// ──────────────────────────────────────────────
+
+// 單則訊息的資料結構
 interface Message {
   id: string;
-  text: string | { response: string } | any;
+  text: string | { response: string } | any; // 允許多種 AI 回傳格式，由 getTextContent 統一解析
   timestamp: number;
-  isAI?: boolean;
+  isAI?: boolean; // true = AI 回覆（右側藍色泡泡）；false/undefined = 使用者訊息（左側半透明泡泡）
 }
 
+// /chat/init 回傳的格式
 interface ChatInitResponse {
   id: string;
 }
 
+// /chat/:id GET 回傳的格式
 interface ChatResponse {
   messages: Message[];
 }
 
-// ============================================================
-// 🏥 醫院公告設定區 — 在此修改醫院推廣內容
-// ============================================================
+// ──────────────────────────────────────────────
+// 🔧 想修改介面上的文字嗎？在這裡改就好！
+// ──────────────────────────────────────────────
+
+// 公告區標題（顯示在對話區上方的說明卡片）
 const HOSPITAL_INTRO_TITLE = '口腔顎面外科衛教查詢';
 
+// 公告區說明文字
 const HOSPITAL_INTRO_DESC =
   '輸入手術名稱、術後問題或相關症狀，AI 將根據本科臨床指引為您提供詳細衛教資訊。';
 
+// 警示文字（黃色小字）
 const HOSPITAL_INTRO_WARNING = '⚠️ 本系統僅供衛教參考，實際治療請諮詢您的主治醫師。';
 
+// 公告連結按鈕（可加入醫院網站、掛號系統、衛教資料等）
+// 格式：{ label: '按鈕文字', href: '連結網址', emoji: '圖示' }
+// 取消下方範例的 // 前綴並填入正確網址即可啟用
 const HOSPITAL_ANNOUNCEMENTS: { label: string; href: string; emoji: string }[] = [
   // 範例（取消註解並填入真實連結即可啟用）：
   // { label: '瀏覽所有衛教資料', href: 'https://www.ntuh.gov.tw/OMS/', emoji: '📋' },
   // { label: '門診預約掛號', href: 'https://reg.ntuh.gov.tw', emoji: '📅' },
   // { label: '術後照護說明', href: 'https://www.ntuh.gov.tw/OMS/care', emoji: '🦷' },
 ];
-// ============================================================
 
+// ──────────────────────────────────────────────
+// 🎨 樣式元件（Styled Components）
+// 想改顏色、間距、字型大小？在對應區塊修改即可
+// ──────────────────────────────────────────────
+
+// 整個應用程式的最外層容器
+// 背景是深藍星空漸層 + CSS 偽元素星點效果
 const AppContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -58,6 +86,8 @@ const AppContainer = styled.div`
   }
 `;
 
+// 頂部標題列（背景模糊玻璃效果）
+// 修改 h1 內容 → 改標題；修改 .subtitle → 改副標題
 const Header = styled.div`
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(12px);
@@ -101,6 +131,8 @@ const Header = styled.div`
   }
 `;
 
+// 公告區卡片（在對話上方顯示的說明+連結區塊）
+// 內容由上方 HOSPITAL_* 常數控制
 const IntroSection = styled.div`
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
@@ -177,6 +209,7 @@ const IntroSection = styled.div`
   }
 `;
 
+// 對話訊息的捲動容器（佔滿剩餘高度，超出時可捲動）
 const ChatContainer = styled.div`
   flex: 1;
   padding: 16px 20px 20px 20px;
@@ -197,6 +230,8 @@ const ChatContainer = styled.div`
   }
 `;
 
+// 單行訊息列（包含頭像 + 氣泡）
+// isAI=true → 靠右對齊（AI）；isAI=false → 靠左（使用者）
 const MessageRow = styled.div<{ isAI?: boolean }>`
   display: flex;
   flex-direction: row;
@@ -205,6 +240,7 @@ const MessageRow = styled.div<{ isAI?: boolean }>`
   justify-content: ${props => props.isAI ? 'flex-end' : 'flex-start'};
 `;
 
+// 訊息左側/右側的圓形頭像（🤖 or 👤）
 const Avatar = styled.div<{ isAI?: boolean }>`
   width: 34px;
   height: 34px;
@@ -219,6 +255,9 @@ const Avatar = styled.div<{ isAI?: boolean }>`
   order: ${props => props.isAI ? 1 : 0};
 `;
 
+// 訊息氣泡本體
+// AI 訊息：深藍色；使用者訊息：半透明白色
+// white-space: pre-wrap → 保留換行符，讓列點正確顯示
 const MessageBubble = styled.div<{ isAI?: boolean }>`
   background: ${props => props.isAI ? 'rgba(26, 86, 196, 0.85)' : 'rgba(255, 255, 255, 0.15)'};
   color: white;
@@ -234,6 +273,7 @@ const MessageBubble = styled.div<{ isAI?: boolean }>`
   backdrop-filter: blur(6px);
 `;
 
+// AI 思考中的動畫泡泡（顯示「思考中...」動畫）
 const LoadingBubble = styled(MessageBubble)`
   background: #1a56c4;
   color: white;
@@ -248,6 +288,7 @@ const LoadingBubble = styled(MessageBubble)`
   }
 `;
 
+// 底部輸入列容器（文字框 + 查詢按鈕 + 清除按鈕）
 const InputContainer = styled.div`
   padding: 14px 20px;
   background: rgba(255, 255, 255, 0.08);
@@ -258,6 +299,7 @@ const InputContainer = styled.div`
   align-items: center;
 `;
 
+// 文字輸入框（placeholder 可在 JSX 區塊修改）
 const Input = styled.input`
   flex: 1;
   padding: 11px 18px;
@@ -281,6 +323,7 @@ const Input = styled.input`
   }
 `;
 
+// 按鈕（支援 variant='secondary' 樣式，用於「清除」按鈕）
 const Button = styled.button<{ variant?: 'secondary' }>`
   padding: 11px 20px;
   background: ${props => props.variant === 'secondary' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(26, 86, 196, 0.85)'};
@@ -305,6 +348,7 @@ const Button = styled.button<{ variant?: 'secondary' }>`
   }
 `;
 
+// 頁尾（顯示系統名稱與技術說明連結）
 const Footer = styled.footer`
   text-align: center;
   padding: 10px 20px;
@@ -321,24 +365,33 @@ const Footer = styled.footer`
   }
 `;
 
+// ──────────────────────────────────────────────
+// 主要 React 元件
+// ──────────────────────────────────────────────
 const App: React.FC = () => {
+  // 對話歷史（含使用者與 AI 訊息）
   const [messages, setMessages] = useState<Message[]>([]);
+  // 使用者輸入的文字
   const [newMessage, setNewMessage] = useState('');
+  // Durable Object 的唯一 ID（由 /chat/init 取得，用於後續 API 呼叫）
   const [chatStateId, setChatStateId] = useState<string | null>(null);
+  // 是否正在等待 AI 回覆（控制 loading 動畫與按鈕禁用狀態）
   const [isLoading, setIsLoading] = useState(false);
 
+  // 頁面載入時：初始化對話 session 並載入歷史訊息
   useEffect(() => {
     fetch('/chat/init', { method: 'POST' })
       .then(res => res.json() as Promise<ChatInitResponse>)
       .then(data => {
         setChatStateId(data.id);
-        return fetch(`/chat/${data.id}`);
+        return fetch(`/chat/${data.id}`); // 取得 Durable Object 中的歷史訊息
       })
       .then(res => res.json() as Promise<ChatResponse>)
       .then(data => setMessages(data.messages))
       .catch(console.error);
   }, []);
 
+  // 發送訊息：先樂觀更新 UI，再呼叫 API 等待 AI 回覆
   const sendMessage = async () => {
     if (!newMessage.trim() || !chatStateId) return;
 
@@ -351,9 +404,11 @@ const App: React.FC = () => {
         isAI: false
       };
 
+      // 立即將使用者訊息顯示到畫面上（不等待 AI 回覆）
       setMessages(prev => [...prev, userMessage]);
       setNewMessage('');
 
+      // POST 到後端，觸發 RAG + AI 生成流程
       const response = await fetch(`/chat/${chatStateId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -361,6 +416,7 @@ const App: React.FC = () => {
       });
       const data = await response.json() as { messages: Message[] };
 
+      // 後端回傳 [userMessage, aiMessage]，取 index 1 的 AI 回覆加入畫面
       if (data.messages && Array.isArray(data.messages)) {
         const aiMessage = data.messages[1];
         if (aiMessage) {
@@ -374,6 +430,7 @@ const App: React.FC = () => {
     }
   };
 
+  // 清除所有對話歷史（呼叫 DELETE /chat/:id）
   const clearChat = async () => {
     if (!chatStateId) return;
     try {
@@ -388,10 +445,13 @@ const App: React.FC = () => {
     setNewMessage(e.target.value);
   };
 
+  // 按下 Enter 鍵時觸發發送（等同點擊「查詢」按鈕）
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') sendMessage();
   };
 
+  // 訊息文字解析：將 AI 回傳的各種格式統一轉為字串
+  // 防止 undefined、null、物件直接顯示造成錯誤
   const getTextContent = (msg: Message): string => {
     if (!msg || msg.text === undefined || msg.text === null) return '（無內容）';
     if (typeof msg.text === 'string') return msg.text || '（空回應）';

@@ -1,34 +1,57 @@
+// ============================================================
+// src/chatState.ts — 核心 AI 邏輯（Cloudflare Durable Object）
+// 負責：
+//   1. 儲存每個 session 的對話歷史（持久化到 Durable Object Storage）
+//   2. 本地知識庫向量檢索（Vectorize Index，臨床指引）
+//   3. 外部補充檢索（PubMed、Tavily）—— 本地知識庫不足時才啟動
+//   4. 呼叫 DeepSeek-R1 LLM 生成回答
+//   5. 回傳結果給前端
+// ============================================================
+
+// 單則對話訊息的資料結構（存入 Durable Object Storage）
 interface ChatMessage {
   id: string;
   text: string;
   timestamp: number;
-  isAI?: boolean;
+  isAI?: boolean; // true = AI 回覆；false = 使用者問題
 }
 
+// Cloudflare Workers 環境變數（在 wrangler.jsonc 設定）
 interface Env {
-  AI: any;
-  VECTORIZE_INDEX: any;
-  TAVILY_API_KEY: string; // wrangler secret put TAVILY_API_KEY
+  AI: any;               // Cloudflare Workers AI（負責 embedding 和 LLM）
+  VECTORIZE_INDEX: any;  // Cloudflare Vectorize（向量資料庫，存放臨床指引）
+  TAVILY_API_KEY: string; // Tavily 搜尋 API 金鑰（設定方式：wrangler secret put TAVILY_API_KEY）
 }
 
+// PubMed 文獻搜尋結果的格式
 interface PubMedResult {
   pmid: string;
   title: string;
   authors: string;
   journal: string;
   pubdate: string;
-  link: string;
+  link: string; // 直接連到 PubMed 文章頁面的連結
 }
 
+// Tavily 外部搜尋結果的格式
 interface TavilyResult {
   title: string;
   url: string;
-  content: string;
+  content: string; // 截取前 400 字的摘要
 }
 
-// 本地知識庫相似度門檻：低於此值才啟動外部檢索
+// ──────────────────────────────────────────────
+// 外部檢索觸發門檻
+// 本地向量相似度分數低於此值時，才啟動 PubMed + Tavily 補充搜尋
+// 調高此值 → 更容易觸發外部搜尋；調低 → 更依賴本地知識庫
+// ──────────────────────────────────────────────
 const LOCAL_SCORE_THRESHOLD = 0.55;
 
+// ──────────────────────────────────────────────
+// PubMed 文獻搜尋（NCBI E-utilities API，免費，不需 API 金鑰）
+// 步驟：esearch 取得 PMID → esummary 取得標題/作者/期刊
+// 最多回傳 3 筆（retmax=3），依相關度排序
+// ──────────────────────────────────────────────
 async function searchPubMed(query: string): Promise<PubMedResult[]> {
   try {
     const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=3&retmode=json&sort=relevance`;
@@ -48,6 +71,7 @@ async function searchPubMed(query: string): Promise<PubMedResult[]> {
       .map((id: string) => {
         const doc = summaryData.result?.[id];
         if (!doc?.title) return null;
+        // 最多顯示 3 位作者，之後用 et al.
         const authorList: string[] = (doc.authors ?? []).slice(0, 3).map((a: any) => a.name);
         return {
           pmid: id,
@@ -65,6 +89,12 @@ async function searchPubMed(query: string): Promise<PubMedResult[]> {
   }
 }
 
+// ──────────────────────────────────────────────
+// Tavily 網路搜尋（限定在可信醫療網域）
+// 需設定 TAVILY_API_KEY（wrangler secret put TAVILY_API_KEY）
+// include_domains 白名單：只搜尋 PubMed、MedlinePlus、Cochrane、UpToDate 等可信來源
+// 若要新增或移除可信網域，修改下方 include_domains 陣列
+// ──────────────────────────────────────────────
 async function searchTavily(query: string, apiKey: string): Promise<TavilyResult[]> {
   try {
     const resp = await fetch('https://api.tavily.com/search', {
@@ -89,6 +119,7 @@ async function searchTavily(query: string, apiKey: string): Promise<TavilyResult
     });
     if (!resp.ok) return [];
     const data: any = await resp.json();
+    // 每筆摘要截取前 400 字，避免塞爆 Prompt
     return (data.results ?? []).map((r: any) => ({
       title: r.title ?? '',
       url: r.url ?? '',
@@ -100,15 +131,21 @@ async function searchTavily(query: string, apiKey: string): Promise<TavilyResult
   }
 }
 
+// ──────────────────────────────────────────────
+// ChatState Durable Object
+// Cloudflare Durable Object 讓每個對話 session 有獨立的持久化儲存空間
+// 同一個 session 的所有請求都會路由到同一個實例，確保對話歷史一致
+// ──────────────────────────────────────────────
 export class ChatState {
   private state: DurableObjectState;
-  private messages: ChatMessage[];
+  private messages: ChatMessage[]; // 記憶體中的對話歷史快取
   private env: Env;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.env = env;
     this.messages = [];
+    // 初始化時從 Durable Object Storage 載入歷史訊息（blockConcurrencyWhile 確保載入完成前不處理請求）
     this.state.blockConcurrencyWhile(async () => {
       const stored = await this.state.storage.get<ChatMessage[]>('messages');
       if (stored) {
@@ -120,14 +157,14 @@ export class ChatState {
   async fetch(request: Request) {
     const url = new URL(request.url);
     
-    // 取得歷史訊息
+    // GET：回傳當前 session 的全部對話歷史（頁面載入時呼叫）
     if (request.method === 'GET') {
       return new Response(JSON.stringify({ messages: this.messages }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // 接收使用者的新問題
+    // POST：接收使用者問題，執行 RAG 流程，回傳 AI 回覆
     if (request.method === 'POST') {
       const body = await request.json() as { text: string };
       console.log('收到病患提問:', body.text);
@@ -143,12 +180,16 @@ export class ChatState {
       try {
         console.log('啟動醫療 RAG 檢索流程...');
 
-        // 步驟 1：把使用者的問題轉換成向量
+        // ── 步驟 1：Embedding ──
+        // 用 BGE 模型將使用者問題轉成向量，用於下一步的相似度搜尋
+        // 若要更換 embedding 模型，修改 @cf/baai/bge-base-en-v1.5
         const queryVector = await this.env.AI.run('@cf/baai/bge-base-en-v1.5', {
           text: [body.text],
         });
 
-        // 步驟 2：查詢本地知識庫（臨床指引，最高優先）
+        // ── 步驟 2：本地向量搜尋（臨床指引知識庫）──
+        // 在 Vectorize 中找最相似的 5 筆臨床指引片段（topK=5）
+        // 想加入更多知識庫內容 → 用 batch_process.py 上傳文件
         const vectorResults = await this.env.VECTORIZE_INDEX.query(queryVector.data[0], {
           topK: 5,
           returnMetadata: true,
@@ -158,6 +199,7 @@ export class ChatState {
         const bestLocalScore: number = localMatches[0]?.score ?? 0;
         console.log(`本地知識庫最高相似度分數: ${bestLocalScore.toFixed(3)}`);
 
+        // 將所有符合的片段合併成一段文字，傳入 Prompt
         let localContext = '';
         if (localMatches.length > 0) {
           localContext = localMatches
@@ -166,7 +208,9 @@ export class ChatState {
             .join('\n\n---\n\n');
         }
 
-        // 步驟 3：若本地知識庫不足，啟動外部檢索（最低優先級）
+        // ── 步驟 3：外部補充搜尋（本地不足時才觸發）──
+        // 僅在本地相似度低於 LOCAL_SCORE_THRESHOLD 時啟動
+        // PubMed 和 Tavily 並行搜尋（Promise.all）以節省時間
         let externalSection = '';
         const needsExternalSearch = bestLocalScore < LOCAL_SCORE_THRESHOLD;
 
@@ -195,7 +239,9 @@ export class ChatState {
           }
         }
 
-        // 步驟 4：建立 System Prompt（臨床指引優先，外部資料為輔）
+        // ── 步驟 4：建構 System Prompt ──
+        // 想修改 AI 的回答風格、語氣、格式規定？在這個 systemPrompt 字串中修改
+        // 臨床指引內容（localContext）與外部資料（externalSection）會自動帶入
         const systemPrompt = `
 你是一位專業、嚴謹且具備同理心的「臺大醫院口腔顎面外科 AI 助理」。
 
@@ -225,7 +271,11 @@ ${localContext || '（本次查詢無相符的本地臨床指引）'}
 ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】\n${externalSection}` : ''}
 `;
 
-        // 步驟 5：呼叫大語言模型生成回答（DeepSeek-R1-Distill-Qwen-32B：先思考再回答，正確率高）
+        // ── 步驟 5：呼叫 LLM 生成最終回答 ──
+        // 目前使用 DeepSeek-R1-Distill-Qwen-32B（推理模型，正確率優先）
+        // 想換模型？修改下方 @cf/... 字串（參考 Cloudflare Workers AI 模型列表）
+        // temperature=0.1：接近確定性輸出，減少醫療資訊的隨機性
+        // max_tokens=2048：容納推理過程後的完整回答
         console.log('呼叫 LLM 生成回答...');
         const response = await this.env.AI.run('@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', {
             messages: [
