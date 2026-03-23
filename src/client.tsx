@@ -105,11 +105,29 @@ const Header = styled.div`
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   }
 
-  .taylor-thirteen {
-    background: #4a9eff;
-    color: white;
-  }
 `;
+
+// ============================================================
+// 🏥 醫院公告設定區 — 在此修改醫院推廣內容
+// ============================================================
+// 說明：
+//   HOSPITAL_ANNOUNCEMENTS 陣列中，每一筆物件代表一個公告連結。
+//   格式：{ label: '顯示文字', href: '連結網址', emoji: '圖示' }
+//   留空陣列 [] 則不顯示任何連結按鈕。
+// ============================================================
+const HOSPITAL_INTRO_TITLE = '臺大醫院口腔顎面外科 AI 智能助理';
+
+const HOSPITAL_INTRO_DESC =
+  '您好！我是臺大醫院口腔顎面外科的 AI 衛教助理，' +
+  '可協助您查詢術前術後照護、常見手術資訊及門診注意事項。' +
+  '所有回答均依據本科臨床指引，如有急迫醫療問題請直接聯繫診間。';
+
+const HOSPITAL_ANNOUNCEMENTS: { label: string; href: string; emoji: string }[] = [
+  // 範例（取消註解並填入真實連結即可啟用）：
+  // { label: '植牙衛教資訊', href: 'https://www.ntuh.gov.tw/OMS/...', emoji: '🦷' },
+  // { label: '正顎手術說明', href: 'https://www.ntuh.gov.tw/OMS/...', emoji: '📋' },
+  // { label: '門診預約掛號', href: 'https://reg.ntuh.gov.tw', emoji: '📅' },
+];
 
 const IntroSection = styled.div`
   background: rgba(255, 255, 255, 0.1);
@@ -504,28 +522,22 @@ const App: React.FC = () => {
   return (
     <AppContainer>
       <Header>
-        <div className="jersey-numbers">
-          <div className="jersey-number taylor-thirteen">13</div>
-          <div className="jersey-number">12</div>
-        </div>
         <h1>🏥 NTUH_OMS_RAG</h1>
         <div className="subtitle">台大醫院口腔顎面外科 AI 智能查詢系統 | Powered by Cloudflare AutoRAG</div>
       </Header>
 
       <IntroSection>
-        <h3>Chat with the Sources</h3>
-        <p>
-        Ask a LLM anything about Taylor Swift's appearance on the New Heights podcast on August 12, 2025 or Travis Kelce's GQ interview! 
-        I have access to both transcripts and can share insights about their conversations.
-        </p>
-        <div className="source-links">
-          <a href="/transcript" className="source-link" target="_blank">
-            New Heights Transcript (2 hours long!🎤)
-          </a>
-          <a href="/gq-article" className="source-link" target="_blank">
-            Travis GQ Interview Article 📰
-          </a>
-        </div>
+        <h3>{HOSPITAL_INTRO_TITLE}</h3>
+        <p>{HOSPITAL_INTRO_DESC}</p>
+        {HOSPITAL_ANNOUNCEMENTS.length > 0 && (
+          <div className="source-links">
+            {HOSPITAL_ANNOUNCEMENTS.map((item, idx) => (
+              <a key={idx} href={item.href} className="source-link" target="_blank" rel="noreferrer">
+                {item.emoji} {item.label}
+              </a>
+            ))}
+          </div>
+        )}
       </IntroSection>
       
       <ChatContainer>
@@ -566,7 +578,7 @@ const App: React.FC = () => {
           value={newMessage}
           onChange={handleInputChange}
           onKeyPress={handleKeyPress}
-          placeholder="Ask about key quotes from the Taylor Swift New Heights podcast or a summary of the Travis GQ article..."
+          placeholder="請輸入您的問題，例如：拔牙後需要注意什麼？"
           disabled={isLoading}
         />
         <Button onClick={sendMessage} disabled={isLoading}>
@@ -578,7 +590,15 @@ const App: React.FC = () => {
       </InputContainer>
       
       <Footer>
-      <strong>made with <span className="heart">❤️</span> in SF<span className="bridge">🌉</span> w/ <span className="cloudflare-ref">Cloudflare <a href="https://developers.cloudflare.com/autorag/">AutoRAG</a>, <a href="https://developers.cloudflare.com/durable-objects/get-started/">Durable Objects</a>, <a href="https://developers.cloudflare.com/workers-ai/models/gpt-oss-120b/">OpenAI gpt-oss-120b</a> on Workers AI, <a href="https://developers.cloudflare.com/browser-rendering">Browser Rendering</a>, <a href="https://developers.cloudflare.com/workers/">Workers</a> and <a href="https://developers.cloudflare.com/r2/">R2</a></span>. Code on GitHub <a href="https://github.com/elizabethsiegle/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss.git">here</a></strong>
+        <strong>
+          臺大醫院口腔顎面外科 AI 衛教助理 | Powered by{' '}
+          <span className="cloudflare-ref">
+            <a href="https://developers.cloudflare.com/autorag/">Cloudflare AutoRAG</a>、
+            <a href="https://developers.cloudflare.com/durable-objects/get-started/">Durable Objects</a>、
+            <a href="https://developers.cloudflare.com/workers-ai/">Workers AI</a>
+          </span>
+          。本助理僅供衛教參考，不可取代醫師專業診斷。
+        </strong>
       </Footer>
     </AppContainer>
   );
