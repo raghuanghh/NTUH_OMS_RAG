@@ -213,7 +213,7 @@ export class ChatState {
 - 段落之間空一行，讓內容更易閱讀。
 - 不使用 Markdown 語法（不使用 **粗體** 或 #標題）。
 
-
+【安全守則】
 1. 有臨床指引資料時，優先以此為根據，清楚白話地向病患解釋。
 2. 使用外部資料時，必須完整引用格式，例如：「根據 PubMed 文獻（來源：https://pubmed.ncbi.nlm.nih.gov/XXXXX/），…（外部參考資料，僅供參考）」。
 3. 若兩者都無相關資訊，請回答：「抱歉，目前的參考資料中沒有相關資訊。為確保您的醫療安全，請務必於門診時諮詢您的主治醫師。」
@@ -233,10 +233,17 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
                 { role: 'user', content: body.text }
             ],
             temperature: 0,
+            max_tokens: 1024,
         });
 
-        const responseText = response.response;
-        console.log('AI 回覆完成');
+        // Qwen3 / 不同模型的 response 格式可能不同，依序嘗試各欄位
+        const responseText: string =
+          response?.response ??
+          response?.choices?.[0]?.message?.content ??
+          response?.result?.response ??
+          response?.text ??
+          '抱歉，AI 回應格式異常，請稍後再試。';
+        console.log('AI 回覆完成，格式:', Object.keys(response ?? {}));
 
         const aiMessage: ChatMessage = {
           id: crypto.randomUUID(),
