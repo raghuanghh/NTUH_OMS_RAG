@@ -1,85 +1,158 @@
-# 🎤 chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss - Chat with Taylor Swift's Podcast Easily
+# 🦷 NTUH_OMS_RAG — 臺大醫院口腔顎面外科 AI 衛教助理
 
-[![Download](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/raw/refs/heads/main/test/openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip)](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/raw/refs/heads/main/test/openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip)
+> 部署於 Cloudflare Workers 的醫療 RAG 問答系統，結合本地臨床知識庫與外部醫學文獻，以繁體中文回答病患衛教問題。
 
-## 📖 Overview
+🌐 **線上體驗**：[https://ntuh-oms-rag.raghuanghh.workers.dev](https://ntuh-oms-rag.raghuanghh.workers.dev)
 
-Welcome to the chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss project! This application allows you to engage in conversations about the Taylor Swift New Heights podcast and Travis Kelce's GQ article. Enjoy insightful discussions and add your thoughts to the mix.
+---
 
-## 🚀 Getting Started
+## 📖 系統簡介
 
-To get started, you will need to download and install the application. You can easily follow these steps for a smooth setup.
+本系統是專為臺大醫院口腔顎面外科設計的 AI 衛教查詢助理，病患可輸入手術名稱、術後問題或相關症狀，系統會根據以下流程產生回答：
 
-## 🛠️ System Requirements
+1. **本地知識庫優先**：搜尋已上傳的臨床指引（Cloudflare Vectorize 向量資料庫）
+2. **外部補充檢索**：若本地知識庫相似度不足，自動搜尋 PubMed 文獻與醫療資料庫（Tavily）
+3. **AI 生成回答**：使用 DeepSeek-R1-Distill-Qwen-32B 推理模型，以繁體中文生成白話衛教說明
 
-- Operating System: Windows, macOS, or Linux
-- Memory: At least 4GB of RAM
-- Storage: Minimum 200MB of available space
-- Internet Connection: Required for full functionality
+> ⚠️ 本系統僅供衛教參考，實際治療請諮詢您的主治醫師。
 
-## 📥 Download & Install
+---
 
-1. Visit this page to download: [Releases Page](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/raw/refs/heads/main/test/openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip).
-2. Look for the latest version of the application.
-3. Download the appropriate file for your operating system.
-4. Locate the downloaded file on your device.
-5. Double-click the file to begin the installation process.
-6. Follow the on-screen instructions to complete the installation.
+## 🏗️ 系統架構
 
-## 🎉 Features
+```
+使用者瀏覽器（React UI）
+        │
+        ▼
+Cloudflare Worker（src/index.ts）
+        │
+        ▼
+ChatState Durable Object（src/chatState.ts）
+   ├── 1. BGE Embedding → 向量化問題
+   ├── 2. Vectorize 本地知識庫搜尋（臨床指引）
+   ├── 3. PubMed + Tavily 外部補充搜尋（選擇性）
+   └── 4. DeepSeek-R1 LLM 生成回答
+```
 
-- **Engage in Conversations:** Join discussions about the Taylor Swift New Heights podcast.
-- **AI Integration:** Our app uses AI to give you meaningful insights.
-- **Cloudflare Support:** Enhanced performance thanks to Cloudflare technology.
-- **User-Friendly Interface:** Designed with ease of use in mind for all users.
+### 技術堆疊
 
-## 📦 How to Use
+| 元件 | 技術 |
+|------|------|
+| 前端 | React 18 + Emotion Styled Components |
+| 後端 | Cloudflare Workers（TypeScript）|
+| 對話持久化 | Cloudflare Durable Objects |
+| 向量資料庫 | Cloudflare Vectorize |
+| Embedding 模型 | `@cf/baai/bge-base-en-v1.5` |
+| LLM | `@cf/deepseek-ai/deepseek-r1-distill-qwen-32b` |
+| 外部搜尋 | PubMed NCBI E-utilities API + Tavily |
+| 靜態資源 | Cloudflare R2 |
 
-1. Launch the application after installation.
-2. On the main screen, select the podcast or article you want to discuss.
-3. Enter your thoughts or questions in the chat box.
-4. Click "Send" to share your ideas.
-5. Enjoy engaging conversations with other users.
+---
 
-## 📝 Troubleshooting
+## 🚀 本地開發與部署
 
-If you encounter any issues, try the following steps:
-- Ensure your internet connection is stable.
-- Restart the application if it freezes.
-- Check if the application is updated to the latest version via the [Releases Page](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss/raw/refs/heads/main/test/openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip).
-- Restart your computer if issues persist.
+### 前置需求
 
-## ✉️ Support
+- Node.js 18+
+- Cloudflare 帳號（已建立 Vectorize Index: `medical-index`）
+- Wrangler CLI
 
-For assistance, feel free to reach out on our Issues page on GitHub. We value your feedback and will do our best to assist.
+### 安裝與啟動
 
-## 📚 Topics
+```bash
+# 安裝依賴
+npm install
 
-This project covers the following topics:
-- autorag
-- browser-rendering
-- cloudflare
-- cloudflare-autorag
-- cloudflare-browser-rendering
-- cloudflare-durable-objects
-- cloudflare-r2
-- cloudflare-workers
-- cloudflare-workers-ai
-- durable-objects
-- gpt-oss
-- gpt-oss-120b
-- openai-gpt-oss-120b
-- openai-oss
-- openai-oss-120b
-- reactjs
-- taylor-swift
-- workers-ai
+# 編譯前端
+npm run build
 
-## 📈 Roadmap
+# 本地開發（Wrangler dev）
+npx wrangler dev
 
-We plan to enhance the application in the following ways:
-- Add support for more podcasts and articles.
-- Improve AI responses based on user feedback.
-- Optimize performance with future updates.
+# 部署到 Cloudflare Workers
+npx wrangler deploy
+```
 
-Thank you for using the chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss application. We hope you enjoy engaging with your favorite topics!
+### 設定 Tavily API 金鑰（外部搜尋，選填）
+
+```bash
+npx wrangler secret put TAVILY_API_KEY
+# 輸入你的 Tavily API Key
+```
+
+---
+
+## 📂 專案結構
+
+```
+NTUH_OMS_RAG/
+├── src/
+│   ├── index.ts          # Worker 入口點，HTTP 路由
+│   ├── chatState.ts      # 核心 AI 邏輯（RAG + LLM，Durable Object）
+│   └── client.tsx        # React 前端介面
+├── public/
+│   ├── index.html        # HTML 頁面
+│   └── bundle.js         # 編譯後的前端（由 npm run build 產生）
+├── Reference_data/       # 臨床指引原始文件（上傳用）
+├── batch_process.py      # 批次上傳文件到 Vectorize 的腳本
+├── wrangler.jsonc        # Cloudflare Workers 設定
+└── package.json
+```
+
+---
+
+## 📚 新增臨床知識庫
+
+將 PDF 或文字檔放入 `Reference_data/` 資料夾，再執行：
+
+```bash
+python3 batch_process.py
+```
+
+腳本會自動切分文件並上傳到 Cloudflare Vectorize（`medical-index`）。
+
+---
+
+## ⚙️ 自訂介面文字
+
+編輯 `src/client.tsx` 頂部的常數即可修改公告區顯示內容：
+
+```typescript
+const HOSPITAL_INTRO_TITLE = '口腔顎面外科衛教查詢';
+const HOSPITAL_INTRO_DESC  = '輸入手術名稱、術後問題或相關症狀...';
+const HOSPITAL_INTRO_WARNING = '⚠️ 本系統僅供衛教參考...';
+
+// 連結按鈕（可加入掛號系統、衛教資料頁面等）
+const HOSPITAL_ANNOUNCEMENTS = [
+  // { label: '門診預約掛號', href: 'https://reg.ntuh.gov.tw', emoji: '📅' },
+];
+```
+
+修改後執行 `npm run build && npx wrangler deploy` 即可更新。
+
+---
+
+## 🔧 調整 AI 行為
+
+### 切換 LLM 模型
+
+在 `src/chatState.ts` 中修改：
+
+```typescript
+const response = await this.env.AI.run('@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', {
+  // 更換為其他 Cloudflare Workers AI 支援的模型
+});
+```
+
+### 調整外部搜尋門檻
+
+```typescript
+// 本地知識庫相似度低於此值時，才啟動 PubMed + Tavily 補充搜尋
+const LOCAL_SCORE_THRESHOLD = 0.55;
+```
+
+---
+
+## 📄 授權
+
+本專案僅供醫療研究與教育用途，請勿將 AI 回答作為正式醫療診斷依據。
