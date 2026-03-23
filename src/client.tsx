@@ -59,10 +59,11 @@ const AppContainer = styled.div`
 `;
 
 const Header = styled.div`
-  background: white;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
   padding: 18px 24px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
   position: relative;
 
   &::before {
@@ -72,6 +73,7 @@ const Header = styled.div`
     left: 20px;
     transform: translateY(-50%);
     font-size: 1.5rem;
+    opacity: 0.7;
   }
 
   &::after {
@@ -81,30 +83,31 @@ const Header = styled.div`
     right: 20px;
     transform: translateY(-50%);
     font-size: 1.3rem;
-    opacity: 0.5;
+    opacity: 0.4;
   }
 
   h1 {
-    color: #1a56c4;
+    color: white;
     font-size: 1.7rem;
     font-weight: 700;
     margin: 0 0 4px 0;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.3);
   }
 
   .subtitle {
-    color: #6b7a99;
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.88rem;
     font-weight: 400;
   }
 `;
 
 const IntroSection = styled.div`
-  background: white;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
   margin: 16px 20px 0 20px;
   border-radius: 14px;
   padding: 18px 22px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
-  border: 1px solid #e4eaf7;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
 
   &::before {
@@ -125,7 +128,7 @@ const IntroSection = styled.div`
   }
 
   h3 {
-    color: #1a56c4;
+    color: white;
     font-size: 1rem;
     font-weight: 700;
     margin: 0 0 8px 0;
@@ -133,7 +136,7 @@ const IntroSection = styled.div`
   }
 
   .desc {
-    color: #444;
+    color: rgba(255, 255, 255, 0.85);
     font-size: 0.88rem;
     line-height: 1.6;
     text-align: center;
@@ -141,7 +144,7 @@ const IntroSection = styled.div`
   }
 
   .warning {
-    color: #e67e22;
+    color: #ffd580;
     font-size: 0.82rem;
     text-align: center;
     margin: 0 0 12px 0;
@@ -156,17 +159,18 @@ const IntroSection = styled.div`
   }
 
   .source-link {
-    background: #1a56c4;
+    background: rgba(74, 158, 255, 0.35);
     color: white;
     padding: 7px 16px;
     border-radius: 20px;
     text-decoration: none;
     font-weight: 500;
     font-size: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.25);
     transition: background 0.2s;
 
     &:hover {
-      background: #1445a3;
+      background: rgba(74, 158, 255, 0.55);
       text-decoration: none;
       color: white;
     }
@@ -210,21 +214,23 @@ const Avatar = styled.div<{ isAI?: boolean }>`
   align-items: center;
   justify-content: center;
   font-size: 1.1rem;
-  background: ${props => props.isAI ? '#1a56c4' : '#e4eaf7'};
+  background: ${props => props.isAI ? 'rgba(26, 86, 196, 0.7)' : 'rgba(255, 255, 255, 0.15)'};
+  border: 1px solid rgba(255, 255, 255, 0.2);
   order: ${props => props.isAI ? 1 : 0};
 `;
 
 const MessageBubble = styled.div<{ isAI?: boolean }>`
-  background: ${props => props.isAI ? '#1a56c4' : 'white'};
-  color: ${props => props.isAI ? 'white' : '#2c3e50'};
+  background: ${props => props.isAI ? 'rgba(26, 86, 196, 0.85)' : 'rgba(255, 255, 255, 0.15)'};
+  color: white;
   padding: 11px 16px;
   border-radius: ${props => props.isAI ? '18px 4px 18px 18px' : '4px 18px 18px 18px'};
   max-width: 72%;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   font-size: 0.93rem;
   line-height: 1.6;
   word-break: break-word;
-  border: ${props => props.isAI ? 'none' : '1px solid #e4eaf7'};
+  border: 1px solid ${props => props.isAI ? 'rgba(74, 158, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)'};
+  backdrop-filter: blur(6px);
 `;
 
 const LoadingBubble = styled(MessageBubble)`
@@ -243,41 +249,42 @@ const LoadingBubble = styled(MessageBubble)`
 
 const InputContainer = styled.div`
   padding: 14px 20px;
-  background: white;
-  border-top: 1px solid #e4eaf7;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   gap: 10px;
   align-items: center;
-  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
 `;
 
 const Input = styled.input`
   flex: 1;
   padding: 11px 18px;
-  border: 1.5px solid #c5cfe8;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 24px;
   outline: none;
   font-size: 15px;
-  background: #f7f9ff;
-  color: #2c3e50;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
   font-family: inherit;
+  backdrop-filter: blur(6px);
 
   &:focus {
-    border-color: #1a56c4;
-    background: white;
-    box-shadow: 0 0 0 3px rgba(26, 86, 196, 0.1);
+    border-color: rgba(74, 158, 255, 0.7);
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.15);
   }
 
   &::placeholder {
-    color: #a0adc4;
+    color: rgba(255, 255, 255, 0.45);
   }
 `;
 
 const Button = styled.button<{ variant?: 'secondary' }>`
   padding: 11px 20px;
-  background: ${props => props.variant === 'secondary' ? '#f0f4ff' : '#1a56c4'};
-  color: ${props => props.variant === 'secondary' ? '#1a56c4' : 'white'};
-  border: ${props => props.variant === 'secondary' ? '1.5px solid #c5cfe8' : 'none'};
+  background: ${props => props.variant === 'secondary' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(26, 86, 196, 0.85)'};
+  color: white;
+  border: 1px solid ${props => props.variant === 'secondary' ? 'rgba(255, 255, 255, 0.25)' : 'rgba(74, 158, 255, 0.5)'};
   border-radius: 24px;
   cursor: pointer;
   font-size: 15px;
@@ -285,13 +292,14 @@ const Button = styled.button<{ variant?: 'secondary' }>`
   white-space: nowrap;
   transition: all 0.15s ease;
   font-family: inherit;
+  backdrop-filter: blur(6px);
 
   &:hover:not(:disabled) {
-    background: ${props => props.variant === 'secondary' ? '#e4eaf7' : '#1445a3'};
+    background: ${props => props.variant === 'secondary' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(26, 86, 196, 1)'};
   }
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
   }
 `;
@@ -299,13 +307,14 @@ const Button = styled.button<{ variant?: 'secondary' }>`
 const Footer = styled.footer`
   text-align: center;
   padding: 10px 20px;
-  background: white;
-  color: #8a95b0;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.5);
   font-size: 12px;
-  border-top: 1px solid #e4eaf7;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 
   a {
-    color: #1a56c4;
+    color: rgba(74, 158, 255, 0.9);
     text-decoration: none;
     &:hover { text-decoration: underline; }
   }
