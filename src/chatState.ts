@@ -208,7 +208,12 @@ export class ChatState {
 1. 【最優先】「臨床指引參考資料」中的內容，這是本院審核過的醫療指引。
 2. 【補充參考】若臨床指引不足，可參考「外部醫學資料」，但必須在回答中附上來源連結，並加註「（外部參考資料，僅供參考）」。
 
-【安全守則】
+【格式規定】
+- 回答需要列點時，每個項目請另起一行，並在開頭加上「1. 」「2. 」或「• 」符號。
+- 段落之間空一行，讓內容更易閱讀。
+- 不使用 Markdown 語法（不使用 **粗體** 或 #標題）。
+
+
 1. 有臨床指引資料時，優先以此為根據，清楚白話地向病患解釋。
 2. 使用外部資料時，必須完整引用格式，例如：「根據 PubMed 文獻（來源：https://pubmed.ncbi.nlm.nih.gov/XXXXX/），…（外部參考資料，僅供參考）」。
 3. 若兩者都無相關資訊，請回答：「抱歉，目前的參考資料中沒有相關資訊。為確保您的醫療安全，請務必於門診時諮詢您的主治醫師。」
@@ -222,12 +227,12 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
 
         // 步驟 5：呼叫大語言模型生成回答
         console.log('呼叫 LLM 生成回答...');
-        const response = await this.env.AI.run('@cf/meta/llama-3-8b-instruct', {
+        const response = await this.env.AI.run('@cf/qwen/qwen3-30b-a3b-fp8', {
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: body.text }
             ],
-            temperature: 0, 
+            temperature: 0,
         });
 
         const responseText = response.response;

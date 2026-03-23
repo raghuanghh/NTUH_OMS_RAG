@@ -227,8 +227,9 @@ const MessageBubble = styled.div<{ isAI?: boolean }>`
   max-width: 72%;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   font-size: 0.93rem;
-  line-height: 1.6;
+  line-height: 1.7;
   word-break: break-word;
+  white-space: pre-wrap;
   border: 1px solid ${props => props.isAI ? 'rgba(74, 158, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)'};
   backdrop-filter: blur(6px);
 `;
