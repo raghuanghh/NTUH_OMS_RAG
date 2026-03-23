@@ -237,13 +237,22 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
         });
 
         // Qwen3 / 不同模型的 response 格式可能不同，依序嘗試各欄位
-        const responseText: string =
+        console.log('AI response keys:', Object.keys(response ?? {}));
+        const rawText =
           response?.response ??
           response?.choices?.[0]?.message?.content ??
           response?.result?.response ??
           response?.text ??
-          '抱歉，AI 回應格式異常，請稍後再試。';
-        console.log('AI 回覆完成，格式:', Object.keys(response ?? {}));
+          null;
+
+        if (!rawText || typeof rawText !== 'string') {
+          console.error('Unexpected AI response format:', JSON.stringify(response).substring(0, 300));
+        }
+
+        const responseText: string =
+          (rawText && typeof rawText === 'string' && rawText.trim())
+            ? rawText.trim()
+            : '抱歉，AI 回應格式異常，請稍後再試。';
 
         const aiMessage: ChatMessage = {
           id: crypto.randomUUID(),

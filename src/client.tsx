@@ -393,10 +393,11 @@ const App: React.FC = () => {
   };
 
   const getTextContent = (msg: Message): string => {
-    if (typeof msg.text === 'string') return msg.text;
-    if (msg.text && typeof msg.text === 'object') {
+    if (!msg || msg.text === undefined || msg.text === null) return '（無內容）';
+    if (typeof msg.text === 'string') return msg.text || '（空回應）';
+    if (typeof msg.text === 'object') {
       const obj = msg.text as any;
-      return obj.response ?? obj.text ?? obj.message ?? JSON.stringify(obj);
+      return obj.response ?? obj.choices?.[0]?.message?.content ?? obj.text ?? obj.message ?? obj.content ?? JSON.stringify(obj);
     }
     return String(msg.text);
   };
