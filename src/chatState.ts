@@ -225,18 +225,18 @@ ${localContext || '（本次查詢無相符的本地臨床指引）'}
 ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】\n${externalSection}` : ''}
 `;
 
-        // 步驟 5：呼叫大語言模型生成回答
+        // 步驟 5：呼叫大語言模型生成回答（DeepSeek-R1-Distill-Qwen-32B：先思考再回答，正確率高）
         console.log('呼叫 LLM 生成回答...');
-        const response = await this.env.AI.run('@cf/qwen/qwen3-30b-a3b-fp8', {
+        const response = await this.env.AI.run('@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', {
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: body.text }
             ],
-            temperature: 0,
-            max_tokens: 1024,
+            temperature: 0.1,
+            max_tokens: 2048,
         });
 
-        // Qwen3 / 不同模型的 response 格式可能不同，依序嘗試各欄位
+        // DeepSeek-R1 response 格式，移除 <think>...</think> 思考過程，只保留最終回答
         console.log('AI response keys:', Object.keys(response ?? {}));
         const rawText =
           response?.response ??
@@ -249,9 +249,14 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
           console.error('Unexpected AI response format:', JSON.stringify(response).substring(0, 300));
         }
 
+        // 移除 <think>...</think> 區塊（DeepSeek-R1 的內部推理過程，不顯示給使用者）
+        const cleanedText = rawText
+          ? rawText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+          : null;
+
         const responseText: string =
-          (rawText && typeof rawText === 'string' && rawText.trim())
-            ? rawText.trim()
+          (cleanedText && cleanedText.length > 0)
+            ? cleanedText
             : '抱歉，AI 回應格式異常，請稍後再試。';
 
         const aiMessage: ChatMessage = {
