@@ -300,38 +300,22 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
         // temperature=0.3：在穩定性與自然語氣之間取得平衡
         // max_tokens=2048：足以容納完整的衛教回答
         console.log('呼叫 LLM 生成回答...');
-        const response = await this.env.AI.run('@cf/zai-org/glm-4.7-flash', {
+        // 使用 Llama 3.3 70B — Meta 官方大模型，Cloudflare 原生支援，格式穩定，中文夠好
+        // 回應格式：{ response: string }（標準 Cloudflare Workers AI 格式）
+        const response = await this.env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: body.text }
             ],
             temperature: 0.3,
             max_tokens: 2048,
-            stream: false,
         });
 
-        // 相容多種回應格式（Cloudflare 各模型格式不一）
         console.log('AI response type:', typeof response, 'keys:', response ? Object.keys(response) : 'null');
-        let rawText: string | null = null;
-        if (typeof response === 'string') {
-          rawText = response;
-        } else if (response?.response && typeof response.response === 'string') {
-          rawText = response.response;
-        } else if (response?.choices?.[0]?.message?.content) {
-          rawText = response.choices[0].message.content;
-        } else if (response?.result?.response) {
-          rawText = response.result.response;
-        } else if (response?.text) {
-          rawText = response.text;
-        } else if (response) {
-          // 最後手段：嘗試序列化
-          const s = JSON.stringify(response);
-          console.error('未知回應格式，原始內容：', s.substring(0, 300));
-        }
-
-        if (!rawText) {
-          console.error('AI 回傳空內容，原始 response：', JSON.stringify(response ?? null).substring(0, 300));
-        }
+        // Llama 系列標準回應格式為 { response: string }
+        const rawText: string | null =
+          (typeof response === 'string' ? response : null) ??
+          (response?.response ?? null);
 
         // 移除 <think>...</think> 區塊（推理模型的內部思考過程，不顯示給使用者）
         const cleanedText = rawText
