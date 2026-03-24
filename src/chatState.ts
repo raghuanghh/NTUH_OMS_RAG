@@ -180,9 +180,7 @@ export class ChatState {
       try {
         console.log('啟動醫療 RAG 檢索流程...');
 
-        // ── 步驟 1：Embedding ──
-        // 用 BGE 模型將使用者問題轉成向量，用於下一步的相似度搜尋
-        // 若要更換 embedding 模型，修改 @cf/baai/bge-base-en-v1.5
+        // ── 步驟 1：呼叫 BGE Embedding 模型，將問題轉成向量 ──
         const queryVector = await this.env.AI.run('@cf/baai/bge-base-en-v1.5', {
           text: [body.text],
         });
@@ -272,7 +270,7 @@ export class ChatState {
 - 回答需要列點時，每個項目請另起一行，並在開頭加上「1. 」「2. 」或「• 」符號。
 - 段落之間空一行，讓內容更易閱讀。
 - 不使用 Markdown 語法（不使用 **粗體** 或 #標題）。
-- 引用本地臨床指引時，在該段落末尾加上 ${localSourceNote || '（參考資料：本院臨床指引）'}。
+- 引用本地臨床指引時，在該段落末尾加上 ${localSourceNote || '（參考資料：臨床指引參考資料）'}。
 - 引用外部資料時，標注「（參考資料：來源網址）（外部參考資料，僅供參考）」。
 
 【安全守則】
@@ -288,8 +286,7 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
 `;
 
         // ── 步驟 5：呼叫 LLM 生成最終回答 ──
-        // 使用 GLM-4.7-Flash（Zhipu AI）：對繁體中文與多語言支援最佳，回答自然流暢
-        // 想換模型？修改下方 @cf/... 字串（參考 Cloudflare Workers AI 模型列表）
+        // 使用 Llama 3.3 70B（Meta）：Cloudflare 原生支援，格式穩定，中文夠好
         // temperature=0.3：在穩定性與自然語氣之間取得平衡
         // max_tokens=2048：足以容納完整的衛教回答
         console.log('呼叫 LLM 生成回答...');
