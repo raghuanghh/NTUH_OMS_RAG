@@ -219,12 +219,114 @@ const response = await this.env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast
 });
 ```
 
-### 調整外部搜尋門檻
+---
+
+## 🎛️ RAG 參數調整指南
+
+所有參數都在 `src/chatState.ts` 中，修改後執行 `npm run build && npx wrangler deploy` 即可更新。
+
+### 目前參數總覽
+
+| 參數 | 目前值 | 位置 |
+|------|--------|------|
+| `LOCAL_SCORE_THRESHOLD` | `0.55` | `chatState.ts` 頂部 |
+| `topK`（Vectorize 回傳筆數） | `5` | 步驟 2 |
+| `temperature`（LLM 創意度） | `0.3` | 步驟 5 |
+| `max_tokens`（回答長度上限） | `2048` | 步驟 5 |
+| PubMed 最多回傳筆數 | `3` | `searchPubMed()` |
+| Tavily 最多回傳筆數 | `3` | `searchTavily()` |
+| Tavily 摘要截取字數 | `400` | `searchTavily()` |
+
+---
+
+### LOCAL_SCORE_THRESHOLD（外部搜尋觸發門檻）
 
 ```typescript
-// 本地知識庫相似度低於此值時，才啟動 PubMed + Tavily 補充搜尋
-const LOCAL_SCORE_THRESHOLD = 0.55;
+const LOCAL_SCORE_THRESHOLD = 0.55;  // 目前值：0.55
 ```
+
+本地 Vectorize 搜尋的最高相似度分數，低於此值才會啟動 PubMed + Tavily 外部搜尋。
+
+| 值 | 效果 |
+|----|------|
+| `0.7` 以上 | 幾乎每次都觸發外部搜尋（延遲較高） |
+| `0.55`（目前） | 平衡：本地有相關資料就優先用本地 |
+| `0.4` 以下 | 幾乎只用本地知識庫，很少觸發外部搜尋 |
+
+---
+
+### topK（本地知識庫搜尋筆數）
+
+```typescript
+const vectorResults = await this.env.VECTORIZE_INDEX.query(queryVector.data[0], {
+  topK: 5,  // 目前值：5
+  returnMetadata: true,
+});
+```
+
+從 Vectorize 撈出最相似的前 N 筆臨床指引片段，全部塞進 Prompt 作為參考資料。
+
+| 值 | 效果 |
+|----|------|
+| `3` | Prompt 較短，回答較快，但可能遺漏相關資訊 |
+| `5`（目前） | 平衡 |
+| `10` | 涵蓋更多資料，但 Prompt 變長，費用與延遲增加 |
+
+---
+
+### temperature（LLM 回答的隨機度 / 創意度）
+
+```typescript
+temperature: 0.3,  // 目前值：0.3，範圍 0.0 ~ 1.0
+```
+
+控制 LLM 回答的穩定性與創意度。
+
+| 值 | 效果 |
+|----|------|
+| `0.0` | 完全確定性輸出，每次回答幾乎相同，最保守 |
+| `0.1 ~ 0.3`（目前 0.3） | 穩定為主，語氣稍有變化，適合醫療場景 |
+| `0.5 ~ 0.7` | 語氣更自然，但偶爾措辭不一致 |
+| `1.0` | 高度隨機，不適合醫療用途 |
+
+> 💡 醫療場景建議維持 `0.1 ~ 0.3`，避免 AI 回答內容每次差異過大。
+
+---
+
+### max_tokens（回答長度上限）
+
+```typescript
+max_tokens: 2048,  // 目前值：2048
+```
+
+LLM 單次回答的最大 token 數（約 1 token ≈ 0.75 個英文字 / 0.5 個中文字）。
+
+| 值 | 效果 |
+|----|------|
+| `512` | 簡短回答，適合快速問答 |
+| `1024` | 中等長度 |
+| `2048`（目前） | 足以包含完整的術後衛教說明 |
+| `4096` | 更長，但延遲增加，一般衛教問題不需要 |
+
+---
+
+### PubMed / Tavily 搜尋筆數
+
+```typescript
+// PubMed（searchPubMed 函式）
+retmax=3  // 目前值：3
+
+// Tavily（searchTavily 函式）
+max_results: 3,  // 目前值：3
+content: (r.content ?? '').substring(0, 400),  // 每筆摘要截取前 400 字
+```
+
+外部搜尋的結果數量，影響 Prompt 長度與費用：
+
+| 參數 | 調高效果 | 調低效果 |
+|------|---------|---------|
+| `retmax` / `max_results` | 更多參考資料，但 Prompt 更長 | 搜尋更快，Prompt 較短 |
+| `substring(0, 400)` | 每筆摘要更完整 | 減少 token 用量 |
 
 ---
 
