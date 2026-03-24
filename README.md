@@ -6,6 +6,82 @@
 
 ---
 
+## ⚡ 常用指令速查
+
+> 每次開啟 Codespace 後，先 `cd /workspaces/NTUH_OMS_RAG`，再執行以下指令。
+
+### 修改程式碼後 → 編譯 + 部署（最常用）
+
+```bash
+npm run build && npx wrangler deploy
+```
+
+### 只重新部署（Worker 後端，不需重新編譯前端）
+
+```bash
+npx wrangler deploy
+```
+
+### 只重新編譯前端（修改 `src/client.tsx` 後）
+
+```bash
+npm run build
+```
+
+### 本地開發預覽（不會影響線上版本）
+
+```bash
+npx wrangler dev
+```
+
+### 上傳新的臨床指引到知識庫
+
+```bash
+# 先把文件放入 Reference_data/ 資料夾，再執行：
+python3 batch_process.py
+```
+
+### 推送變更到 GitHub（需先 build）
+
+```bash
+# 1. 編譯前端
+npm run build
+
+# 2. 加入所有變更
+git add .
+
+# 3. 寫上版本備註並提交
+git commit -m "你的備註說明"
+
+# 4. 推送（透過 Python API，因 Codespace 無 git 憑證）
+python3 - <<'EOF'
+import base64, urllib.request, json, os, subprocess
+
+TOKEN = open('/workspaces/.codespaces/shared/.env').read()
+TOKEN = [l.split('=',1)[1] for l in TOKEN.splitlines() if l.startswith('GITHUB_TOKEN=')][0]
+
+files = ['src/chatState.ts', 'src/index.ts', 'src/client.tsx', 'public/bundle.js']
+for path in files:
+    r = urllib.request.urlopen(urllib.request.Request(
+        f'https://api.github.com/repos/raghuanghh/NTUH_OMS_RAG/contents/{path}?ref=main',
+        headers={'Authorization': f'token {TOKEN}', 'Accept': 'application/vnd.github+json', 'User-Agent': 'py'}
+    ))
+    sha = json.loads(r.read())['sha']
+    with open(path, 'rb') as f:
+        b64 = base64.b64encode(f.read()).decode()
+    req = urllib.request.Request(
+        f'https://api.github.com/repos/raghuanghh/NTUH_OMS_RAG/contents/{path}',
+        data=json.dumps({"message": "update", "content": b64, "sha": sha, "branch": "main"}).encode(),
+        method='PUT',
+        headers={'Authorization': f'token {TOKEN}', 'Content-Type': 'application/json', 'Accept': 'application/vnd.github+json', 'User-Agent': 'py'}
+    )
+    print(f"✅ {path}")
+    urllib.request.urlopen(req)
+EOF
+```
+
+---
+
 ## 📖 系統簡介
 
 本系統是專為臺大醫院口腔顎面外科設計的 AI 衛教查詢助理，病患可輸入手術名稱、術後問題或相關症狀，系統會根據以下流程產生回答：
