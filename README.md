@@ -8,11 +8,7 @@
 
 ## 📖 系統簡介
 
-本系統是專為臺大醫院口腔顎面外科設計的 AI 衛教查詢助理，病患可輸入手術名稱、術後問題或相關症狀，系統會根據以下流程產生回答：
-
-1. **本地知識庫優先**：搜尋已上傳的臨床指引（Cloudflare Vectorize 向量資料庫）
-2. **外部補充檢索**：若本地知識庫相似度不足，自動搜尋 PubMed 文獻與醫療資料庫（Tavily）
-3. **AI 生成回答**：使用 DeepSeek-R1-Distill-Qwen-32B 推理模型，以繁體中文生成白話衛教說明
+本系統是專為臺大醫院口腔顎面外科設計的 AI 衛教查詢助理，病患可輸入手術名稱、術後問題或相關症狀，系統會根據本地臨床指引優先、外部文獻補充的原則，以白話繁體中文生成回答。
 
 > ⚠️ 本系統僅供衛教參考，實際治療請諮詢您的主治醫師。
 
@@ -25,13 +21,18 @@
         │
         ▼
 Cloudflare Worker（src/index.ts）
+  ├── GET  /          → 回傳靜態前端頁面
+  ├── GET  /chat/:id  → 讀取對話歷史
+  ├── POST /chat/:id  → 送出問題，執行 RAG 流程
+  └── DELETE /chat/:id → 清除對話歷史
         │
         ▼
 ChatState Durable Object（src/chatState.ts）
-   ├── 1. BGE Embedding → 向量化問題
-   ├── 2. Vectorize 本地知識庫搜尋（臨床指引）
-   ├── 3. PubMed + Tavily 外部補充搜尋（選擇性）
-   └── 4. DeepSeek-R1 LLM 生成回答
+   ├── 步驟 1：BGE Embedding（向量化問題）
+   ├── 步驟 2：Vectorize 本地知識庫搜尋
+   ├── 步驟 3：PubMed + Tavily 外部補充搜尋（有條件觸發）
+   ├── 步驟 4：建構 System Prompt
+   └── 步驟 5：Llama 3.3 70B 生成回答
 ```
 
 ### 技術堆疊
@@ -41,11 +42,84 @@ ChatState Durable Object（src/chatState.ts）
 | 前端 | React 18 + Emotion Styled Components |
 | 後端 | Cloudflare Workers（TypeScript）|
 | 對話持久化 | Cloudflare Durable Objects |
-| 向量資料庫 | Cloudflare Vectorize |
+| 向量資料庫 | Cloudflare Vectorize（`medical-index`）|
 | Embedding 模型 | `@cf/baai/bge-base-en-v1.5` |
-| LLM | `@cf/deepseek-ai/deepseek-r1-distill-qwen-32b` |
+| LLM | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
 | 外部搜尋 | PubMed NCBI E-utilities API + Tavily |
 | 靜態資源 | Cloudflare R2 |
+
+---
+
+## 🔍 RAG 運行邏輯與資料檢索優先級
+
+### 完整流程（每次收到病患問題時執行）
+
+```
+病患提問
+   │
+   ▼
+【步驟 1】BGE Embedding
+   將問題文字轉換成 1536 維向量
+   模型：@cf/baai/bge-base-en-v1.5
+   │
+   ▼
+【步驟 2】Vectorize 本地知識庫搜尋（最高優先）
+   在 Reference_data/ 上傳的臨床指引中，找最相似的 5 筆片段（topK=5）
+   計算相似度分數（0.0 ~ 1.0），取最高分作為判斷依據
+   │
+   ├── 分數 ≥ 0.55 → 本地知識庫足夠，跳過外部搜尋
+   │
+   └── 分數 < 0.55 → 本地不足，進入步驟 3
+          │
+          ▼
+       【步驟 3】外部補充搜尋（PubMed + Tavily，並行執行）
+          ├── PubMed NCBI：搜尋相關醫學文獻（最多 3 筆）
+          └── Tavily：搜尋可信醫療網域（PubMed、MedlinePlus、Cochrane、
+                       UpToDate、NEJM、BMJ、The Lancet）
+   │
+   ▼
+【步驟 4】建構 System Prompt
+   按優先順序將資料組合進 Prompt：
+   ① 本地臨床指引（最高優先）
+   ② 外部醫學資料（補充，需標注來源）
+   │
+   ▼
+【步驟 5】Llama 3.3 70B 生成回答
+   模型：@cf/meta/llama-3.3-70b-instruct-fp8-fast
+   temperature=0.3（穩定但自然）
+   max_tokens=2048
+   │
+   ▼
+回傳給病患
+```
+
+### 資料來源優先級
+
+| 優先級 | 來源 | 觸發條件 | 參考資料標注 |
+|--------|------|----------|-------------|
+| 🥇 第一優先 | 本地臨床指引（Reference_data/） | 永遠優先搜尋 | `（參考資料：臨床指引參考資料）` |
+| 🥈 第二優先 | PubMed 醫學文獻 | 本地相似度 < 0.55 | `（參考資料：PubMed 連結）（外部參考資料，僅供參考）` |
+| 🥉 第三優先 | Tavily 醫療網域搜尋 | 本地相似度 < 0.55 | `（參考資料：來源網址）（外部參考資料，僅供參考）` |
+| ❌ 無資料 | — | 三者皆無相符 | 回覆建議病患諮詢主治醫師 |
+
+### AI 回答規則（System Prompt 規定）
+
+- **語言**：自動偵測病患使用的語言回應（繁體中文 / 英文 / 日文等）
+- **語氣**：全程使用「您」，溫和有耐心，具同理心
+- **醫學名詞**：中英對照，格式為「截骨手術（Osteotomy）」
+- **亂碼輸入**：溫和提示病患重新輸入
+- **無關問題**：說明系統服務範圍，建議轉介適當科別
+- **禁止捏造**：不可假設任何醫療數據、手術風險或診斷結果
+
+### 外部搜尋門檻調整
+
+在 `src/chatState.ts` 中修改 `LOCAL_SCORE_THRESHOLD`：
+
+```typescript
+// 調高 → 更常觸發外部搜尋（例如 0.7）
+// 調低 → 更依賴本地知識庫（例如 0.4）
+const LOCAL_SCORE_THRESHOLD = 0.55;
+```
 
 ---
 
@@ -139,8 +213,9 @@ const HOSPITAL_ANNOUNCEMENTS = [
 在 `src/chatState.ts` 中修改：
 
 ```typescript
-const response = await this.env.AI.run('@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', {
-  // 更換為其他 Cloudflare Workers AI 支援的模型
+const response = await this.env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+  // 可替換為其他 Cloudflare Workers AI 支援的模型
+  // 模型列表：https://developers.cloudflare.com/workers-ai/models/
 });
 ```
 
