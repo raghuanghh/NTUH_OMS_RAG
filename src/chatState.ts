@@ -242,15 +242,8 @@ export class ChatState {
         // ── 步驟 4：建構 System Prompt ──
         // 想修改 AI 的回答風格、語氣、格式規定？在這個 systemPrompt 字串中修改
         // 臨床指引內容（localContext）與外部資料（externalSection）會自動帶入
-        // 從本地知識庫比對結果中，取得來源檔名（用於標注參考資料）
-        const localSources = localMatches
-          .map((m: any) => m.metadata?.source || m.metadata?.filename || m.metadata?.file || '')
-          .filter(Boolean)
-          .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i); // 去重
-
-        const localSourceNote = localSources.length > 0
-          ? `（參考資料：${localSources.join('、')}）`
-          : '';
+        // 本地知識庫統一標注為「臨床指引參考資料」
+        const localSourceNote = localMatches.length > 0 ? '（參考資料：臨床指引參考資料）' : '';
 
         const systemPrompt = `
 你是臺大醫院口腔顎面外科的 AI 衛教助理，專門協助病患了解手術前後的注意事項與相關醫療資訊。
