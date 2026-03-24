@@ -307,20 +307,30 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
             ],
             temperature: 0.3,
             max_tokens: 2048,
+            stream: false,
         });
 
-        // GLM-4.7-Flash 使用標準 OpenAI 格式，回應在 choices[0].message.content
-        // 保留 <think> 移除作為安全措施（若未來換回推理模型）
-        console.log('AI response keys:', Object.keys(response ?? {}));
-        const rawText =
-          response?.response ??
-          response?.choices?.[0]?.message?.content ??
-          response?.result?.response ??
-          response?.text ??
-          null;
+        // 相容多種回應格式（Cloudflare 各模型格式不一）
+        console.log('AI response type:', typeof response, 'keys:', response ? Object.keys(response) : 'null');
+        let rawText: string | null = null;
+        if (typeof response === 'string') {
+          rawText = response;
+        } else if (response?.response && typeof response.response === 'string') {
+          rawText = response.response;
+        } else if (response?.choices?.[0]?.message?.content) {
+          rawText = response.choices[0].message.content;
+        } else if (response?.result?.response) {
+          rawText = response.result.response;
+        } else if (response?.text) {
+          rawText = response.text;
+        } else if (response) {
+          // 最後手段：嘗試序列化
+          const s = JSON.stringify(response);
+          console.error('未知回應格式，原始內容：', s.substring(0, 300));
+        }
 
-        if (!rawText || typeof rawText !== 'string') {
-          console.error('Unexpected AI response format:', JSON.stringify(response).substring(0, 300));
+        if (!rawText) {
+          console.error('AI 回傳空內容，原始 response：', JSON.stringify(response ?? null).substring(0, 300));
         }
 
         // 移除 <think>...</think> 區塊（推理模型的內部思考過程，不顯示給使用者）
