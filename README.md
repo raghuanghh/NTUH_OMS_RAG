@@ -538,7 +538,99 @@ content: (r.content ?? '').substring(0, 400),  // 每筆摘要截取前 400 字
 
 ---
 
+## 📦 知識庫建置參數調整指南
+
+所有參數都在 `batch_process.py` 頂部的設定區塊，修改後重新執行腳本即可。
+
+### 目前參數總覽
+
+| 參數 | 目前值 | 說明 |
+|------|--------|------|
+| `CHUNK_SIZE` | `300` | 每個切片的字元數 |
+| `PAGES_PER_BATCH` | `50` | 每次送 Chandra OCR 的頁數上限 |
+| `PDF_FOLDER` | `"Reference_data"` | PDF 來源資料夾路徑 |
+
+```python
+# batch_process.py 頂部設定區塊
+PDF_FOLDER = "Reference_data"
+CHUNK_SIZE = 300       # 最終文字切片大小（字元數）
+PAGES_PER_BATCH = 50   # Chandra 每次呼叫處理的頁數上限
+```
+
+---
+
+### CHUNK_SIZE（切片大小）
+
+控制每個向量化單元的文字長度，直接影響 RAG 搜尋精度與 Prompt 品質。
+
+| 值 | 效果 |
+|----|------|
+| `150 ~ 200` | 切片更細，語意更精準，但向量數量增多 |
+| `300`（目前） | 平衡：適合中英混合的醫療文件 |
+| `500 ~ 800` | 切片較大，保留更多上下文，但語意稀釋 |
+
+> 💡 **建議：** 若 Chandra 解析的 Markdown 有大量標題/換行，可提高到 `400~500`；若文件內容密集（如英文指引），維持 `300` 即可。
+
+**修改方式：**
+
+```python
+# batch_process.py
+CHUNK_SIZE = 400  # 改成想要的大小
+```
+
+改完後重新執行完整建置流程：
+
+```bash
+python3 batch_process.py   # 重新切片
+python3 upload_prep.py      # 重新向量化
+npx wrangler vectorize insert medical-index --file=vectorize_upload.ndjson
+```
+
+> ⚠️ **注意：** 更換 `CHUNK_SIZE` 後需重新上傳所有向量，建議先清除舊向量：
+> ```bash
+> npx wrangler vectorize delete-by-ids medical-index --all
+> ```
+
+---
+
+### PAGES_PER_BATCH（每批頁數）
+
+控制每次呼叫 Chandra OCR API 的頁數，避免超過單次請求的頁數限制。
+
+| 值 | 效果 |
+|----|------|
+| `20 ~ 30` | 每批更小，API 更穩定，但呼叫次數增多 |
+| `50`（目前） | 平衡：適合一般 PDF |
+| `80 ~ 100` | 每批更大，呼叫次數少，但若遇到複雜頁面可能較慢 |
+
+**修改方式：**
+
+```python
+# batch_process.py
+PAGES_PER_BATCH = 30  # 改成想要的每批頁數
+```
+
+---
+
+### Chandra OCR 解析模式
+
+在 `batch_process.py` 的 `extract_text_with_chandra()` 函式中修改 `mode`：
+
+```python
+options = ConvertOptions(
+    mode="accurate",   # 可改為 "fast" 或 "balanced"
+    ...
+)
+```
+
+| mode | 速度 | 精度 | 建議使用場景 |
+|------|------|------|------------|
+| `"fast"` | ⚡ 最快 | 一般 | 純文字、格式簡單的 PDF |
+| `"balanced"` | 中等 | 良好 | 一般醫療文件 |
+| `"accurate"`（目前）| 較慢 | 最高 | 掃描版 PDF、手寫、複雜排版 |
+
+---
+
 ## 📄 授權
 
 本專案僅供醫療研究與教育用途，請勿將 AI 回答作為正式醫療診斷依據。
-
