@@ -1,0 +1,10 @@
+# Cloudflare Workers 本地開發環境變數
+# 複製此檔案為 .dev.vars（已被 .gitignore 排除，不會上傳到 GitHub）
+#
+# 使用方式：
+#   cp .dev.vars.example .dev.vars
+#   填入你的實際 API Key，wrangler dev 會自動讀取
+
+# Tavily 外部搜尋 API Key（選填，無此 Key 則停用外部搜尋）
+# 取得網址：https://tavily.com
+TAVILY_API_KEY=your_tavily_api_key_here
