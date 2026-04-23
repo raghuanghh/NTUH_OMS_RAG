@@ -189,8 +189,9 @@ NTUH_OMS_RAG/
 │                                 # 舊版 RAG 方案備份壓縮包
 │
 ├── batch_process.py              # 步驟 1：讀取 Reference_data/ 內 PDF，
-│                                 #   使用 PyMuPDF 萃取文字並切成 300 字區塊，
-│                                 #   輸出 document_chunks.json
+│                                 #   透過 Chandra OCR 2（Datalab API）高精度解析，
+│                                 #   切成 300 字區塊，輸出 document_chunks.json
+│                                 #   需設定環境變數：DATALAB_API_KEY
 │
 ├── upload_prep.py                # 步驟 2：讀取 document_chunks.json，
 │                                 #   以本地 BAAI/bge-base-en-v1.5 模型轉換向量，
@@ -282,13 +283,29 @@ Cloudflare Vectorize（medical-index）
 
 ## 📚 新增臨床知識庫
 
+### 前置需求
+
+安裝 Datalab SDK：
+
+```bash
+pip install datalab-python-sdk
+```
+
+設定 Datalab API Key（在 [https://www.datalab.to/app/keys](https://www.datalab.to/app/keys) 取得）：
+
+```bash
+export DATALAB_API_KEY=your_api_key_here
+```
+
+### 執行步驟
+
 將 PDF 或文字檔放入 `Reference_data/` 資料夾，再執行：
 
 ```bash
 python3 batch_process.py
 ```
 
-腳本會自動切分文件並上傳到 Cloudflare Vectorize（`medical-index`）。
+腳本會透過 **Chandra OCR 2**（Datalab API）以高精度模式解析文件，自動切分成 300 字區塊並輸出 `document_chunks.json`。
 
 ---
 
