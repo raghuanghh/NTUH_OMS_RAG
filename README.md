@@ -160,17 +160,122 @@ npx wrangler secret put TAVILY_API_KEY
 
 ```
 NTUH_OMS_RAG/
-├── src/
-│   ├── index.ts          # Worker 入口點，HTTP 路由
-│   ├── chatState.ts      # 核心 AI 邏輯（RAG + LLM，Durable Object）
-│   └── client.tsx        # React 前端介面
-├── public/
-│   ├── index.html        # HTML 頁面
-│   └── bundle.js         # 編譯後的前端（由 npm run build 產生）
-├── Reference_data/       # 臨床指引原始文件（上傳用）
-├── batch_process.py      # 批次上傳文件到 Vectorize 的腳本
-├── wrangler.jsonc        # Cloudflare Workers 設定
-└── package.json
+├── src/                          # 後端 Worker 與前端原始碼
+│   ├── index.ts                  # Cloudflare Worker 入口點，定義 HTTP 路由
+│   ├── chatState.ts              # 核心 AI 邏輯（Durable Object，執行完整 RAG 流程）
+│   ├── client.tsx                # React 前端介面（Emotion 樣式，編譯成 public/bundle.js）
+│   └── scrapegq.ts               # 保留供未來擴充的網頁抓取腳本（目前未啟用）
+│
+├── public/                       # 靜態前端資源（部署到 Cloudflare Assets）
+│   ├── index.html                # 前端 HTML 頁面主體
+│   └── bundle.js                 # npm run build 編譯 client.tsx 後的產出套件
+│
+├── Reference_data/               # 臨床指引與手術同意書 PDF（向量化來源）
+│   ├── NCCN guidelines dor patients Mouth Cancer.pdf
+│   ├── Nasopharyngeal carcinoma ESMO-EURACAN Clinical Practice Guideline.pdf
+│   ├── Pan-Asian adaptation of the EHNSeESMOeESTRO Clinical Practice.pdf
+│   ├── Sinonasal malignancy ESMO_EURACAN Clinical Practice Guideline.pdf
+│   ├── 一般牙齒及阻生齒拔除手術說明暨同意書去識別.pdf
+│   ├── 正顎手術說明暨同意書去識別.pdf
+│   ├── 頭頸部惡性腫瘤切除手術說明暨同意書去識別.pdf
+│   ├── 頭頸部感染手術說明暨同意書去識別.pdf
+│   └── 頭頸部良性病變、腫瘤、囊腫手術說明暨同意書去識別.pdf
+│
+├── test/                         # 單元測試與測試環境設定
+│   ├── index.spec.ts             # Vitest 單元測試（測試 Worker HTTP 路由回應）
+│   ├── env.d.ts                  # 測試環境 TypeScript 型別定義
+│   ├── tsconfig.json             # 測試專用 TypeScript 編譯設定
+│   └── openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip
+│                                 # 舊版 RAG 方案備份壓縮包
+│
+├── batch_process.py              # 步驟 1：讀取 Reference_data/ 內 PDF，
+│                                 #   使用 PyMuPDF 萃取文字並切成 300 字區塊，
+│                                 #   輸出 document_chunks.json
+│
+├── upload_prep.py                # 步驟 2：讀取 document_chunks.json，
+│                                 #   以本地 BAAI/bge-base-en-v1.5 模型轉換向量，
+│                                 #   輸出 vectorize_upload.ndjson 供上傳 Cloudflare Vectorize
+│
+├── document_chunks.json          # batch_process.py 產生的文字切片（中間產物，不需提交）
+│
+├── wrangler.jsonc                # Cloudflare Workers 部署設定
+│                                 #   - Durable Objects（ChatState）
+│                                 #   - Vectorize（medical-index）
+│                                 #   - R2 Bucket（taylor-rag-articles）
+│                                 #   - Workers AI binding
+│                                 #   - 靜態資源（public/）
+│
+├── package.json                  # npm 套件管理與腳本
+│                                 #   build: esbuild 編譯前端
+│                                 #   dev: wrangler dev 本地開發
+│                                 #   deploy: wrangler deploy 部署
+│                                 #   test: vitest 執行單元測試
+│
+├── tsconfig.json                 # 主程式 TypeScript 編譯設定
+├── vitest.config.mts             # Vitest 測試框架設定（使用 Cloudflare Workers 環境池）
+├── worker-configuration.d.ts     # Wrangler 自動產生的 Workers 環境型別定義
+├── .editorconfig                 # 跨編輯器縮排與換行一致性設定
+├── .prettierrc                   # Prettier 程式碼自動格式化設定
+└── package-lock.json             # npm 依賴鎖定版本
+```
+
+### 各檔案功能說明
+
+#### `src/index.ts` — Worker 入口點
+
+Cloudflare Worker 的主程式，負責接收所有 HTTP 請求並分流：
+
+| 路由 | 方法 | 功能 |
+|------|------|------|
+| `/` | GET | 回傳前端 HTML 頁面（from Cloudflare Assets）|
+| `/bundle.js` | GET | 回傳前端 JS 套件（from Cloudflare Assets）|
+| `/chat/init` | GET | 初始化對話，回傳 Durable Object ID |
+| `/chat/:id` | GET | 取得對話歷史紀錄 |
+| `/chat/:id` | POST | 送出問題，執行 RAG 流程並回傳 AI 回答 |
+| `/chat/:id` | DELETE | 清除對話歷史 |
+
+#### `src/chatState.ts` — 核心 AI 邏輯（Durable Object）
+
+系統的智慧核心，負責執行完整的 RAG 問答流程（詳見 [RAG 運行邏輯](#-rag-運行邏輯與資料檢索優先級)）。主要包含：
+
+- 對話歷史的持久化儲存（SQLite via Durable Object）
+- BGE 向量 Embedding
+- Vectorize 本地知識庫搜尋
+- PubMed NCBI / Tavily 外部補充搜尋
+- System Prompt 建構與 Llama 3.3 70B 推論
+
+#### `src/client.tsx` — React 前端介面
+
+使用 React 18 + Emotion Styled Components 建立的聊天介面，包含：
+- 醫院公告區與快速提問按鈕
+- 對話訊息串列（支援 Markdown 渲染）
+- 輸入框與送出按鈕
+- 可透過頂部常數自訂標題、說明文字與連結按鈕
+
+#### `Reference_data/` — 臨床知識庫來源
+
+存放所有要向量化並上傳至 Cloudflare Vectorize 的原始 PDF：
+
+| 類型 | 檔案 |
+|------|------|
+| 國際臨床指引（英文）| NCCN 口腔癌、ESMO 鼻咽癌、ESMO 鼻竇惡性腫瘤、Pan-Asian HPV 指引 |
+| 手術說明暨同意書（中文）| 拔牙、正顎手術、頭頸部惡性腫瘤切除、頭頸部感染、頭頸部良性病變 |
+
+#### `batch_process.py` + `upload_prep.py` — 知識庫建置流程
+
+兩支 Python 腳本組成知識庫建置的兩階段流程：
+
+```
+Reference_data/*.pdf
+        │
+        ▼  batch_process.py（PyMuPDF 萃取 + 300字切片）
+document_chunks.json
+        │
+        ▼  upload_prep.py（BAAI/bge-base-en-v1.5 本地向量化）
+vectorize_upload.ndjson
+        │
+        ▼  npx wrangler vectorize insert medical-index --file=vectorize_upload.ndjson
+Cloudflare Vectorize（medical-index）
 ```
 
 ---
