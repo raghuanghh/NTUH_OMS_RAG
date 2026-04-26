@@ -242,10 +242,18 @@ npx wrangler deploy
 
 #### 本地開發
 
+⚠️ **重要限制**：Vectorize 在本地開發環境不支持，必須綁定到生產環境索引
+
 ```powershell
+# 使用 --experimental-vectorize-bind-to-prod 連接到生產環境的 medical-index
+npx wrangler dev --experimental-vectorize-bind-to-prod
+
+# 或簡單版本（但 Vectorize 會失敗）
 npx wrangler dev
 # 開啟 http://localhost:8787
 ```
+
+> ⚠️ 若使用 `--experimental-vectorize-bind-to-prod`，本地開發會使用真實的生產向量庫，可能產生查詢費用。建議仅用於測試完整流程。
 
 ---
 
