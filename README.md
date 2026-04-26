@@ -192,6 +192,15 @@ TAVILY_API_KEY=你的_Tavily_API_Key
 # 安裝依賴（使用 Python 3.12）
 py -3.12 -m pip install pypdf requests marker-pdf sentence-transformers
 
+# 載入 API Key 到環境變數
+# 在 PowerShell 中：
+$env:DATALAB_API_KEY = Get-Content .env | Select-String "DATALAB_API_KEY" | ForEach-Object { $_.ToString().Split('=')[1] }
+# 或直接編輯 PowerShell session：
+# $env:DATALAB_API_KEY = "your_datalab_key_here"
+
+# 在 Bash/Mac 中：
+# export $(cat .env | xargs)
+
 # （選填）NVIDIA GPU 加速，約快 10x，詳見下方「GPU 排錯」
 # 確認 CUDA 版本：nvidia-smi
 
