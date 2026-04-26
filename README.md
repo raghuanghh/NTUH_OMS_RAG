@@ -4,633 +4,384 @@
 
 🌐 **線上體驗**：[https://ntuh-oms-rag.raghuanghh.workers.dev](https://ntuh-oms-rag.raghuanghh.workers.dev)
 
----
-
-## 📖 系統簡介
-
-本系統是專為臺大醫院口腔顎面外科設計的 AI 衛教查詢助理，病患可輸入手術名稱、術後問題或相關症狀，系統會根據本地臨床指引優先、外部文獻補充的原則，以白話繁體中文生成回答。
-
 > ⚠️ 本系統僅供衛教參考，實際治療請諮詢您的主治醫師。
 
----
-
-## 🚀 快速開始（從零到部署）
-
-整個系統需要以下三個服務的帳號，以下逐步說明：
-
-```
-Cloudflare（必要）  →  部署 Worker、向量庫、AI 推論
-Datalab / Chandra（知識庫建置用）  →  OCR 解析 PDF
-Tavily（選填）  →  外部醫療文獻搜尋補充
-```
+> 📌 **本專案基於** [hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss) **改作**，在保留 Cloudflare Workers + Durable Objects 基礎架構的前提下，針對醫療衛教場景進行大幅重構，詳見下方「與原始專案的差異」。
 
 ---
 
-### 第一步：取得所有 API 金鑰
+## 技術堆疊
 
-#### 1. Cloudflare API Token（必要）
-
-1. 登入 [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. 右上角頭像 → **My Profile** → **API Tokens**
-3. 點 **Create Token** → 使用 **Edit Cloudflare Workers** 範本
-4. 複製產生的 Token
-
-```bash
-# 登入 Wrangler（只需做一次）
-npx wrangler login
-# 瀏覽器會自動開啟，點允許即可
-```
-
-#### 2. Datalab API Key（知識庫建置用）
-
-> 用於 Chandra OCR 2 高精度解析 PDF，新帳號享 **$5 免費額度**
-
-1. 前往 [https://www.datalab.to/auth/sign_up](https://www.datalab.to/auth/sign_up) 註冊
-2. 登入後點選右上角 → **API Keys**，或直接前往 [https://www.datalab.to/app/keys](https://www.datalab.to/app/keys)
-3. 點 **Create API Key**，複製產生的 Key
-
-#### 3. Tavily API Key（選填，外部搜尋用）
-
-> 無此 Key 系統仍可正常運作，只是當本地知識庫相似度不足時，不會觸發 Tavily 搜尋
-
-1. 前往 [https://tavily.com](https://tavily.com) 註冊（有免費額度）
-2. 登入後進入 Dashboard，複製 API Key
+| 元件 | 技術 | 版本 |
+|------|------|------|
+| 前端 | React + Emotion Styled Components | React 18.2 / Emotion 11 |
+| 後端 | Cloudflare Workers（TypeScript）| TypeScript 5.5 / Wrangler 4.12 |
+| 對話持久化 | Cloudflare Durable Objects（SQLite backend）| compatibility_date 2025-08-13 |
+| 向量資料庫 | Cloudflare Vectorize（`medical-index`，768 維，cosine）| — |
+| Embedding | `@cf/baai/bge-base-en-v1.5` | — |
+| LLM | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | — |
+| 外部搜尋 | PubMed NCBI E-utilities + Tavily | — |
+| PDF OCR | Marker（本地 GPU）+ Datalab API（備援）| marker-pdf 1.x / Python 3.12 |
+| 測試 | Vitest | 3.0 |
 
 ---
 
-### 第二步：Cloudflare 環境準備
-
-#### 建立 Vectorize 向量資料庫
-
-```bash
-# 建立知識庫向量索引（只需做一次）
-npx wrangler vectorize create medical-index --dimensions=768 --metric=cosine
-```
-
-#### 建立 R2 Bucket（選填，供靜態資源使用）
-
-```bash
-npx wrangler r2 bucket create taylor-rag-articles
-```
-
----
-
-### 第三步：設定 API 金鑰到本地環境
-
-```bash
-# 複製範本檔
-cp .env.example .env
-cp .dev.vars.example .dev.vars
-```
-
-編輯 `.env`（Python 腳本使用）：
-
-```env
-DATALAB_API_KEY=你的_Datalab_API_Key
-```
-
-編輯 `.dev.vars`（Wrangler 本地開發使用）：
-
-```env
-TAVILY_API_KEY=你的_Tavily_API_Key
-```
-
-> ✅ `.env` 和 `.dev.vars` 已被 `.gitignore` 排除，**不會上傳到 GitHub**
-
----
-
-### 第四步：建置知識庫（上傳 PDF）
-
-```bash
-# 安裝 Python 依賴
-pip install datalab-python-sdk pymupdf sentence-transformers
-
-# 載入 API Key
-export $(cat .env | xargs)
-
-# 步驟 4a：OCR 解析 PDF → 切片
-python3 batch_process.py
-# 輸出：document_chunks.json
-
-# 步驟 4b：本地向量化
-python3 upload_prep.py
-# 輸出：vectorize_upload.ndjson
-
-# 步驟 4c：上傳到 Cloudflare Vectorize
-npx wrangler vectorize insert medical-index --file=vectorize_upload.ndjson
-```
-
----
-
-### 第五步：部署 Worker
-
-```bash
-# 安裝 Node.js 依賴
-npm install
-
-# 編譯前端
-npm run build
-
-# 設定 Tavily 金鑰到 Cloudflare Secrets（正式環境）
-npx wrangler secret put TAVILY_API_KEY
-# 輸入你的 Tavily API Key 後按 Enter
-
-# 部署到 Cloudflare Workers
-npx wrangler deploy
-```
-
-部署成功後即可透過 `https://<你的worker名稱>.<帳號>.workers.dev` 存取。
-
----
-
-### 本地開發模式
-
-```bash
-# 啟動本地開發伺服器（會自動讀取 .dev.vars）
-npx wrangler dev
-
-# 瀏覽器開啟 http://localhost:8787
-```
-
----
-
-## 🏗️ 系統架構
+## 系統架構
 
 ```
-使用者瀏覽器（React UI）
-        │
-        ▼
-Cloudflare Worker（src/index.ts）
-  ├── GET  /          → 回傳靜態前端頁面
-  ├── GET  /chat/:id  → 讀取對話歷史
-  ├── POST /chat/:id  → 送出問題，執行 RAG 流程
-  └── DELETE /chat/:id → 清除對話歷史
-        │
-        ▼
+病患提問 (front-end UI)
+   │
+   ▼
+Cloudflare Worker（src/index.ts）─ HTTP 路由分流
+   │
+   ▼
 ChatState Durable Object（src/chatState.ts）
-   ├── 步驟 1：BGE Embedding（向量化問題）
-   ├── 步驟 2：Vectorize 本地知識庫搜尋
-   ├── 步驟 3：PubMed + Tavily 外部補充搜尋（有條件觸發）
-   ├── 步驟 4：建構 System Prompt
-   └── 步驟 5：Llama 3.3 70B 生成回答
+   │
+   ├─[1] BGE Embedding：問題向量化
+   │
+   ├─[2] Vectorize 本地知識庫搜尋（topK=5）
+   │       ├── 相似度 ≥ 0.55 → 直接進入步驟 4
+   │       └── 相似度 < 0.55 → 進入步驟 3
+   │
+   ├─[3] 外部補充搜尋（PubMed + Tavily，並行）
+   │
+   ├─[4] 組合 System Prompt（本地優先、外部補充）
+   │
+   └─[5] Llama 3.3 70B 生成回答 → 回傳給病患
 ```
 
-### 技術堆疊
+### RAG 資料來源優先級
 
-| 元件 | 技術 |
-|------|------|
-| 前端 | React 18 + Emotion Styled Components |
-| 後端 | Cloudflare Workers（TypeScript）|
-| 對話持久化 | Cloudflare Durable Objects |
-| 向量資料庫 | Cloudflare Vectorize（`medical-index`）|
-| Embedding 模型 | `@cf/baai/bge-base-en-v1.5` |
-| LLM | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
-| 外部搜尋 | PubMed NCBI E-utilities API + Tavily |
-| PDF 解析 / OCR | Chandra OCR 2（Datalab API）|
-| 靜態資源 | Cloudflare R2 |
+| 優先級 | 來源 | 觸發條件 |
+|--------|------|----------|
+| 1 | 本地臨床指引（Reference_data/） | 永遠搜尋 |
+| 2 | PubMed 醫學文獻 | 本地相似度 < 0.55 |
+| 3 | Tavily 醫療網域搜尋 | 本地相似度 < 0.55 |
+
+### AI 回答規則
+
+- **語言**：自動偵測（繁體中文 / 英文等）
+- **語氣**：全程使用「您」，溫和具同理心
+- **醫學名詞**：中英對照，如「截骨手術（Osteotomy）」
+- **禁止捏造**：不可假設任何醫療數據或診斷結果
 
 ---
 
-## 🔍 RAG 運行邏輯與資料檢索優先級
-
-### 完整流程（每次收到病患問題時執行）
-
-```
-病患提問
-   │
-   ▼
-【步驟 1】BGE Embedding
-   將問題文字轉換成 1536 維向量
-   模型：@cf/baai/bge-base-en-v1.5
-   │
-   ▼
-【步驟 2】Vectorize 本地知識庫搜尋（最高優先）
-   在 Reference_data/ 上傳的臨床指引中，找最相似的 5 筆片段（topK=5）
-   計算相似度分數（0.0 ~ 1.0），取最高分作為判斷依據
-   │
-   ├── 分數 ≥ 0.55 → 本地知識庫足夠，跳過外部搜尋
-   │
-   └── 分數 < 0.55 → 本地不足，進入步驟 3
-          │
-          ▼
-       【步驟 3】外部補充搜尋（PubMed + Tavily，並行執行）
-          ├── PubMed NCBI：搜尋相關醫學文獻（最多 3 筆）
-          └── Tavily：搜尋可信醫療網域（PubMed、MedlinePlus、Cochrane、
-                       UpToDate、NEJM、BMJ、The Lancet）
-   │
-   ▼
-【步驟 4】建構 System Prompt
-   按優先順序將資料組合進 Prompt：
-   ① 本地臨床指引（最高優先）
-   ② 外部醫學資料（補充，需標注來源）
-   │
-   ▼
-【步驟 5】Llama 3.3 70B 生成回答
-   模型：@cf/meta/llama-3.3-70b-instruct-fp8-fast
-   temperature=0.3（穩定但自然）
-   max_tokens=2048
-   │
-   ▼
-回傳給病患
-```
-
-### 資料來源優先級
-
-| 優先級 | 來源 | 觸發條件 | 參考資料標注 |
-|--------|------|----------|-------------|
-| 第一優先 | 本地臨床指引（Reference_data/） | 永遠優先搜尋 | `（參考資料：臨床指引參考資料）` |
-| 第二優先 | PubMed 醫學文獻 | 本地相似度 < 0.55 | `（參考資料：PubMed 連結）（外部參考資料，僅供參考）` |
-| 第三優先 | Tavily 醫療網域搜尋 | 本地相似度 < 0.55 | `（參考資料：來源網址）（外部參考資料，僅供參考）` |
-| 無資料 | — | 三者皆無相符 | 回覆建議病患諮詢主治醫師 |
-
-### AI 回答規則（System Prompt 規定）
-
-- **語言**：自動偵測病患使用的語言回應（繁體中文 / 英文 / 日文等）
-- **語氣**：全程使用「您」，溫和有耐心，具同理心
-- **醫學名詞**：中英對照，格式為「截骨手術（Osteotomy）」
-- **亂碼輸入**：溫和提示病患重新輸入
-- **無關問題**：說明系統服務範圍，建議轉介適當科別
-- **禁止捏造**：不可假設任何醫療數據、手術風險或診斷結果
-
-### 外部搜尋門檻調整
-
-在 `src/chatState.ts` 中修改 `LOCAL_SCORE_THRESHOLD`：
-
-```typescript
-// 調高 → 更常觸發外部搜尋（例如 0.7）
-// 調低 → 更依賴本地知識庫（例如 0.4）
-const LOCAL_SCORE_THRESHOLD = 0.55;
-```
-
----
-
-## 📂 專案結構
+## 專案結構
 
 ```
 NTUH_OMS_RAG/
-├── src/                          # 後端 Worker 與前端原始碼
-│   ├── index.ts                  # Cloudflare Worker 入口點，定義 HTTP 路由
-│   ├── chatState.ts              # 核心 AI 邏輯（Durable Object，執行完整 RAG 流程）
-│   ├── client.tsx                # React 前端介面（Emotion 樣式，編譯成 public/bundle.js）
-│   └── scrapegq.ts               # 保留供未來擴充的網頁抓取腳本（目前未啟用）
+├── src/
+│   ├── index.ts              # Worker 入口，HTTP 路由
+│   ├── chatState.ts          # 核心 RAG 邏輯（Durable Object）
+│   ├── client.tsx            # React 前端介面
+│   └── scrapegq.ts           # 網頁抓取（未啟用，保留備用）
+├── public/
+│   ├── index.html            # 前端頁面
+│   └── bundle.js             # npm run build 產出
+├── test/
+│   ├── index.spec.ts         # Vitest 單元測試
+│   ├── env.d.ts              # 測試環境型別定義
+│   └── tsconfig.json         # 測試專用 TS 設定
+├── Reference_data/           # 原始 PDF 知識庫
 │
-├── public/                       # 靜態前端資源（部署到 Cloudflare Assets）
-│   ├── index.html                # 前端 HTML 頁面主體
-│   └── bundle.js                 # npm run build 編譯 client.tsx 後的產出套件
+├── batch_process.py          # ✅ 步驟 1：PDF → OCR → document_chunks.json
+├── upload_prep.py            # ✅ 步驟 2：chunks → 向量化 → vectorize_upload.ndjson
+├── check_pdfs.py             # 🔧 診斷工具：檢查 PDF 可讀性與頁數
+├── analyze_chunks.py         # 🔧 診斷工具：分析 chunks 內容與來源統計
 │
-├── Reference_data/               # 臨床指引與手術同意書 PDF（向量化來源）
-│   ├── NCCN guidelines dor patients Mouth Cancer.pdf
-│   ├── Nasopharyngeal carcinoma ESMO-EURACAN Clinical Practice Guideline.pdf
-│   ├── Pan-Asian adaptation of the EHNSeESMOeESTRO Clinical Practice.pdf
-│   ├── Sinonasal malignancy ESMO_EURACAN Clinical Practice Guideline.pdf
-│   ├── 一般牙齒及阻生齒拔除手術說明暨同意書去識別.pdf
-│   ├── 正顎手術說明暨同意書去識別.pdf
-│   ├── 頭頸部惡性腫瘤切除手術說明暨同意書去識別.pdf
-│   ├── 頭頸部感染手術說明暨同意書去識別.pdf
-│   └── 頭頸部良性病變、腫瘤、囊腫手術說明暨同意書去識別.pdf
-│
-├── test/                         # 單元測試與測試環境設定
-│   ├── index.spec.ts             # Vitest 單元測試（測試 Worker HTTP 路由回應）
-│   ├── env.d.ts                  # 測試環境 TypeScript 型別定義
-│   ├── tsconfig.json             # 測試專用 TypeScript 編譯設定
-│   └── openaioss_chat_and_on_taylor_travis_autorag_w_newheights_gq_v1.0.zip
-│                                 # 舊版 RAG 方案備份壓縮包
-│
-├── batch_process.py              # 步驟 1：讀取 Reference_data/ 內 PDF，
-│                                 #   fitz 取得頁數 → 每 50 頁一批送 Chandra OCR 2，
-│                                 #   合併後切成 300 字區塊，輸出 document_chunks.json
-│                                 #   需設定環境變數：DATALAB_API_KEY
-│
-├── upload_prep.py                # 步驟 2：讀取 document_chunks.json，
-│                                 #   以本地 BAAI/bge-base-en-v1.5 模型轉換向量，
-│                                 #   輸出 vectorize_upload.ndjson 供上傳 Cloudflare Vectorize
-│
-├── document_chunks.json          # batch_process.py 產生的文字切片（中間產物，不需提交）
-│
-├── wrangler.jsonc                # Cloudflare Workers 部署設定
-│                                 #   - Durable Objects（ChatState）
-│                                 #   - Vectorize（medical-index）
-│                                 #   - R2 Bucket（taylor-rag-articles）
-│                                 #   - Workers AI binding
-│                                 #   - 靜態資源（public/）
-│
-├── package.json                  # npm 套件管理與腳本
-│                                 #   build: esbuild 編譯前端
-│                                 #   dev: wrangler dev 本地開發
-│                                 #   deploy: wrangler deploy 部署
-│                                 #   test: vitest 執行單元測試
-│
-├── tsconfig.json                 # 主程式 TypeScript 編譯設定
-├── vitest.config.mts             # Vitest 測試框架設定（使用 Cloudflare Workers 環境池）
-├── worker-configuration.d.ts     # Wrangler 自動產生的 Workers 環境型別定義
-├── .env.example                  # Python 腳本 API Key 範本（複製為 .env 後填入真實值）
-├── .dev.vars.example             # Wrangler 本地開發 API Key 範本（複製為 .dev.vars）
-├── .editorconfig                 # 跨編輯器縮排與換行一致性設定
-├── .prettierrc                   # Prettier 程式碼自動格式化設定
-└── package-lock.json             # npm 依賴鎖定版本
+├── document_chunks.json      # 中間產物（已加入 .gitignore，不需提交，可從 PDF 重新生成）
+├── wrangler.jsonc            # Cloudflare Workers 部署設定
+├── package.json              # npm 腳本（build / dev / deploy / test）
+├── tsconfig.json             # TypeScript 編譯設定
+├── .env.example              # Python 腳本 API Key 範本
+└── .dev.vars.example         # Wrangler 本地開發 API Key 範本
 ```
 
-### 各檔案功能說明
+### HTTP 路由（src/index.ts）
 
-#### `src/index.ts` — Worker 入口點
-
-Cloudflare Worker 的主程式，負責接收所有 HTTP 請求並分流：
-
-| 路由 | 方法 | 功能 |
+| 方法 | 路由 | 功能 |
 |------|------|------|
-| `/` | GET | 回傳前端 HTML 頁面（from Cloudflare Assets）|
-| `/bundle.js` | GET | 回傳前端 JS 套件（from Cloudflare Assets）|
-| `/chat/init` | GET | 初始化對話，回傳 Durable Object ID |
-| `/chat/:id` | GET | 取得對話歷史紀錄 |
-| `/chat/:id` | POST | 送出問題，執行 RAG 流程並回傳 AI 回答 |
-| `/chat/:id` | DELETE | 清除對話歷史 |
+| GET | `/` | 前端頁面 |
+| GET | `/chat/init` | 初始化對話，回傳 Session ID |
+| GET | `/chat/:id` | 取得對話歷史 |
+| POST | `/chat/:id` | 送出問題，執行 RAG 流程 |
+| DELETE | `/chat/:id` | 清除對話 |
 
-#### `src/chatState.ts` — 核心 AI 邏輯（Durable Object）
-
-系統的智慧核心，負責執行完整的 RAG 問答流程（詳見 [RAG 運行邏輯](#-rag-運行邏輯與資料檢索優先級)）。主要包含：
-
-- 對話歷史的持久化儲存（SQLite via Durable Object）
-- BGE 向量 Embedding
-- Vectorize 本地知識庫搜尋
-- PubMed NCBI / Tavily 外部補充搜尋
-- System Prompt 建構與 Llama 3.3 70B 推論
-
-#### `src/client.tsx` — React 前端介面
-
-使用 React 18 + Emotion Styled Components 建立的聊天介面，包含：
-- 醫院公告區與快速提問按鈕
-- 對話訊息串列（支援 Markdown 渲染）
-- 輸入框與送出按鈕
-- 可透過頂部常數自訂標題、說明文字與連結按鈕
-
-#### `Reference_data/` — 臨床知識庫來源
-
-存放所有要向量化並上傳至 Cloudflare Vectorize 的原始 PDF：
-
-| 類型 | 檔案 |
-|------|------|
-| 國際臨床指引（英文）| NCCN 口腔癌、ESMO 鼻咽癌、ESMO 鼻竇惡性腫瘤、Pan-Asian HPV 指引 |
-| 手術說明暨同意書（中文）| 拔牙、正顎手術、頭頸部惡性腫瘤切除、頭頸部感染、頭頸部良性病變 |
-
-#### `batch_process.py` + `upload_prep.py` — 知識庫建置流程
-
-```
-Reference_data/*.pdf
-        │
-        ▼  batch_process.py（Chandra OCR 2 自動分頁批次解析 + 300字切片）
-        │  - fitz 取得 PDF 頁數
-        │  - 每 50 頁一批，用 page_range 送 Chandra（可調整 PAGES_PER_BATCH）
-        │  - 合併所有批次 Markdown → 切成 300 字區塊
-        │  需要：pip install datalab-python-sdk pymupdf
-        │        export DATALAB_API_KEY=your_key
-document_chunks.json
-        │
-        ▼  upload_prep.py（BAAI/bge-base-en-v1.5 本地向量化）
-        │  需要：pip install sentence-transformers
-vectorize_upload.ndjson
-        │
-        ▼  npx wrangler vectorize insert medical-index --file=vectorize_upload.ndjson
-Cloudflare Vectorize（medical-index）
-```
-
----
-
-## ⚙️ 自訂介面文字
-
-編輯 `src/client.tsx` 頂部的常數即可修改公告區顯示內容：
+### 自訂介面文字（src/client.tsx）
 
 ```typescript
-const HOSPITAL_INTRO_TITLE = '口腔顎面外科衛教查詢';
-const HOSPITAL_INTRO_DESC  = '輸入手術名稱、術後問題或相關症狀...';
+const HOSPITAL_INTRO_TITLE   = '口腔顎面外科衛教查詢';
+const HOSPITAL_INTRO_DESC    = '輸入手術名稱、術後問題或相關症狀...';
 const HOSPITAL_INTRO_WARNING = '⚠️ 本系統僅供衛教參考...';
-
-// 連結按鈕（可加入掛號系統、衛教資料頁面等）
 const HOSPITAL_ANNOUNCEMENTS = [
   // { label: '門診預約掛號', href: 'https://reg.ntuh.gov.tw', emoji: '📅' },
 ];
 ```
 
-修改後執行 `npm run build && npx wrangler deploy` 即可更新。
+修改後執行 `npm run build && npx wrangler deploy` 更新。
 
 ---
 
-## 🔧 調整 AI 行為
+## 快速開始
 
-### 切換 LLM 模型
+### 第一步：取得 API 金鑰
 
-在 `src/chatState.ts` 中修改：
+| 服務 | 說明 | 連結 |
+|------|------|------|
+| Cloudflare ✅ | 部署 Worker、向量庫、AI 推論 | [dash.cloudflare.com](https://dash.cloudflare.com) → API Tokens |
+| Datalab（選填）| OCR 備援，$5 免費額度 | [datalab.to/app/keys](https://www.datalab.to/app/keys) |
+| Tavily（選填）| 外部醫療文獻搜尋 | [tavily.com](https://tavily.com) |
 
-```typescript
-const response = await this.env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
-  // 可替換為其他 Cloudflare Workers AI 支援的模型
-  // 模型列表：https://developers.cloudflare.com/workers-ai/models/
-});
+```powershell
+npx wrangler login   # Cloudflare 登入（只需做一次）
 ```
 
 ---
 
-## 🎛️ RAG 參數調整指南
+### 第二步：建立 Cloudflare 資源（只需做一次）
 
-所有參數都在 `src/chatState.ts` 中，修改後執行 `npm run build && npx wrangler deploy` 即可更新。
+```powershell
+# 向量資料庫（必要）
+npx wrangler vectorize create medical-index --dimensions=768 --metric=cosine
 
-### 目前參數總覽
-
-| 參數 | 目前值 | 位置 |
-|------|--------|------|
-| `LOCAL_SCORE_THRESHOLD` | `0.55` | `chatState.ts` 頂部 |
-| `topK`（Vectorize 回傳筆數） | `5` | 步驟 2 |
-| `temperature`（LLM 創意度） | `0.3` | 步驟 5 |
-| `max_tokens`（回答長度上限） | `2048` | 步驟 5 |
-| PubMed 最多回傳筆數 | `3` | `searchPubMed()` |
-| Tavily 最多回傳筆數 | `3` | `searchTavily()` |
-| Tavily 摘要截取字數 | `400` | `searchTavily()` |
-
----
-
-### LOCAL_SCORE_THRESHOLD（外部搜尋觸發門檻）
-
-```typescript
-const LOCAL_SCORE_THRESHOLD = 0.55;  // 目前值：0.55
-```
-
-本地 Vectorize 搜尋的最高相似度分數，低於此值才會啟動 PubMed + Tavily 外部搜尋。
-
-| 值 | 效果 |
-|----|------|
-| `0.7` 以上 | 幾乎每次都觸發外部搜尋（延遲較高） |
-| `0.55`（目前） | 平衡：本地有相關資料就優先用本地 |
-| `0.4` 以下 | 幾乎只用本地知識庫，很少觸發外部搜尋 |
-
----
-
-### topK（本地知識庫搜尋筆數）
-
-```typescript
-const vectorResults = await this.env.VECTORIZE_INDEX.query(queryVector.data[0], {
-  topK: 5,  // 目前值：5
-  returnMetadata: true,
-});
-```
-
-從 Vectorize 撈出最相似的前 N 筆臨床指引片段，全部塞進 Prompt 作為參考資料。
-
-| 值 | 效果 |
-|----|------|
-| `3` | Prompt 較短，回答較快，但可能遺漏相關資訊 |
-| `5`（目前） | 平衡 |
-| `10` | 涵蓋更多資料，但 Prompt 變長，費用與延遲增加 |
-
----
-
-### temperature（LLM 回答的隨機度 / 創意度）
-
-```typescript
-temperature: 0.3,  // 目前值：0.3，範圍 0.0 ~ 1.0
-```
-
-控制 LLM 回答的穩定性與創意度。
-
-| 值 | 效果 |
-|----|------|
-| `0.0` | 完全確定性輸出，每次回答幾乎相同，最保守 |
-| `0.1 ~ 0.3`（目前 0.3） | 穩定為主，語氣稍有變化，適合醫療場景 |
-| `0.5 ~ 0.7` | 語氣更自然，但偶爾措辭不一致 |
-| `1.0` | 高度隨機，不適合醫療用途 |
-
-> 💡 醫療場景建議維持 `0.1 ~ 0.3`，避免 AI 回答內容每次差異過大。
-
----
-
-### max_tokens（回答長度上限）
-
-```typescript
-max_tokens: 2048,  // 目前值：2048
-```
-
-LLM 單次回答的最大 token 數（約 1 token ≈ 0.75 個英文字 / 0.5 個中文字）。
-
-| 值 | 效果 |
-|----|------|
-| `512` | 簡短回答，適合快速問答 |
-| `1024` | 中等長度 |
-| `2048`（目前） | 足以包含完整的術後衛教說明 |
-| `4096` | 更長，但延遲增加，一般衛教問題不需要 |
-
----
-
-### PubMed / Tavily 搜尋筆數
-
-```typescript
-// PubMed（searchPubMed 函式）
-retmax=3  // 目前值：3
-
-// Tavily（searchTavily 函式）
-max_results: 3,  // 目前值：3
-content: (r.content ?? '').substring(0, 400),  // 每筆摘要截取前 400 字
-```
-
-外部搜尋的結果數量，影響 Prompt 長度與費用：
-
-| 參數 | 調高效果 | 調低效果 |
-|------|---------|---------|
-| `retmax` / `max_results` | 更多參考資料，但 Prompt 更長 | 搜尋更快，Prompt 較短 |
-| `substring(0, 400)` | 每筆摘要更完整 | 減少 token 用量 |
-
----
-
-## 📦 知識庫建置參數調整指南
-
-所有參數都在 `batch_process.py` 頂部的設定區塊，修改後重新執行腳本即可。
-
-### 目前參數總覽
-
-| 參數 | 目前值 | 說明 |
-|------|--------|------|
-| `CHUNK_SIZE` | `300` | 每個切片的字元數 |
-| `PAGES_PER_BATCH` | `50` | 每次送 Chandra OCR 的頁數上限 |
-| `PDF_FOLDER` | `"Reference_data"` | PDF 來源資料夾路徑 |
-
-```python
-# batch_process.py 頂部設定區塊
-PDF_FOLDER = "Reference_data"
-CHUNK_SIZE = 300       # 最終文字切片大小（字元數）
-PAGES_PER_BATCH = 50   # Chandra 每次呼叫處理的頁數上限
+# Durable Object migration（第一次部署時 Cloudflare 會自動執行，無需手動操作）
+# R2 Bucket：wrangler.jsonc 中有設定 binding，但目前系統未實際使用，可略過
+# npx wrangler r2 bucket create taylor-rag-articles
 ```
 
 ---
 
-### CHUNK_SIZE（切片大小）
+### 第三步：設定本地環境變數
 
-控制每個向量化單元的文字長度，直接影響 RAG 搜尋精度與 Prompt 品質。
-
-| 值 | 效果 |
-|----|------|
-| `150 ~ 200` | 切片更細，語意更精準，但向量數量增多 |
-| `300`（目前） | 平衡：適合中英混合的醫療文件 |
-| `500 ~ 800` | 切片較大，保留更多上下文，但語意稀釋 |
-
-> 💡 **建議：** 若 Chandra 解析的 Markdown 有大量標題/換行，可提高到 `400~500`；若文件內容密集（如英文指引），維持 `300` 即可。
-
-**修改方式：**
-
-```python
-# batch_process.py
-CHUNK_SIZE = 400  # 改成想要的大小
+```powershell
+# 複製範本檔
+cp .env.example .env
+cp .dev.vars.example .dev.vars
 ```
 
-改完後重新執行完整建置流程：
+編輯 `.env`（Python 腳本用）：
+```env
+DATALAB_API_KEY=你的_Datalab_API_Key   # 選填
+```
 
-```bash
-python3 batch_process.py   # 重新切片
-python3 upload_prep.py      # 重新向量化
+編輯 `.dev.vars`（Wrangler 本地開發用）：
+```env
+TAVILY_API_KEY=你的_Tavily_API_Key
+```
+
+> ✅ 這兩個檔案已被 `.gitignore` 排除，不會上傳到 GitHub
+
+---
+
+### 第四步：建置知識庫
+
+知識庫建置流程：`Reference_data/*.pdf` → OCR → 向量化 → 上傳 Vectorize
+
+#### 4a. OCR 解析 PDF
+
+本系統支援雙通道 OCR，`OCR_ENGINE` 預設為 `"auto"`：
+
+| 引擎設定 | 行為 | 費用 | 速度 |
+|---------|------|------|------|
+| `"auto"`（預設）| 有 API Key 先用 Datalab；失敗或無 Key 自動切換 Marker | 視情況 | — |
+| `"marker"` | 只用本地 Marker，完全免費 | 免費 | GPU ~0.1 秒/頁；CPU ~2~5 秒/頁 |
+| `"datalab"` | 只用 Datalab API | ~$0.01/頁 | 雲端非同步 |
+
+```powershell
+# 安裝依賴（使用 Python 3.12）
+py -3.12 -m pip install pypdf requests marker-pdf sentence-transformers
+
+# （選填）NVIDIA GPU 加速，約快 10x，詳見下方「GPU 排錯」
+# 確認 CUDA 版本：nvidia-smi
+
+# 執行 OCR（支援斷點續跑）
+py -3.12 batch_process.py
+# 輸出：document_chunks.json
+```
+
+> 首次執行 Marker 會下載模型（約 4GB），之後可離線使用。
+
+#### 4b. 向量化並上傳
+
+```powershell
+# 向量化（若未安裝 sentence-transformers 請先安裝）
+py -3.12 upload_prep.py
+# 輸出：vectorize_upload.ndjson
+
+# 上傳到 Cloudflare Vectorize
 npx wrangler vectorize insert medical-index --file=vectorize_upload.ndjson
 ```
 
-> ⚠️ **注意：** 更換 `CHUNK_SIZE` 後需重新上傳所有向量，建議先清除舊向量：
-> ```bash
-> npx wrangler vectorize delete-by-ids medical-index --all
-> ```
-
 ---
 
-### PAGES_PER_BATCH（每批頁數）
+### 第五步：部署
 
-控制每次呼叫 Chandra OCR API 的頁數，避免超過單次請求的頁數限制。
+```powershell
+# 安裝 Node 依賴並編譯前端
+npm install
+npm run build
 
-| 值 | 效果 |
-|----|------|
-| `20 ~ 30` | 每批更小，API 更穩定，但呼叫次數增多 |
-| `50`（目前） | 平衡：適合一般 PDF |
-| `80 ~ 100` | 每批更大，呼叫次數少，但若遇到複雜頁面可能較慢 |
+# 設定 Tavily 金鑰到正式環境（輸入 Key 後按 Enter）
+npx wrangler secret put TAVILY_API_KEY
 
-**修改方式：**
+# 部署
+npx wrangler deploy
+```
 
-```python
-# batch_process.py
-PAGES_PER_BATCH = 30  # 改成想要的每批頁數
+部署後透過 `https://<worker名稱>.<帳號>.workers.dev` 存取。
+
+#### 本地開發
+
+```powershell
+npx wrangler dev
+# 開啟 http://localhost:8787
 ```
 
 ---
 
-### Chandra OCR 解析模式
+## 參數調整
 
-在 `batch_process.py` 的 `extract_text_with_chandra()` 函式中修改 `mode`：
+### RAG 參數（`src/chatState.ts`）
 
-```python
-options = ConvertOptions(
-    mode="accurate",   # 可改為 "fast" 或 "balanced"
-    ...
-)
+修改後執行 `npm run build && npx wrangler deploy` 更新。
+
+| 參數 | 預設值 | 說明 |
+|------|--------|------|
+| `LOCAL_SCORE_THRESHOLD` | `0.55` | 低於此值才觸發外部搜尋（調高 → 更常用外部；調低 → 更依賴本地）|
+| `topK` | `5` | Vectorize 回傳最相似筆數 |
+| `temperature` | `0.3` | LLM 創意度（醫療場景建議 0.1~0.3）|
+| `max_tokens` | `2048` | 回答長度上限 |
+| PubMed `retmax` | `3` | 外部搜尋最多回傳筆數 |
+| Tavily `max_results` | `3` | 外部搜尋最多回傳筆數 |
+
+### OCR 參數（`batch_process.py` 頂部）
+
+| 參數 | 預設值 | 說明 |
+|------|--------|------|
+| `OCR_ENGINE` | `"auto"` | `"auto"` / `"marker"`（本地免費）/ `"datalab"`（雲端）|
+| `MARKER_DEVICE` | `"cuda"` | `"auto"` / `"cuda"` / `"mps"` / `"cpu"` |
+| `PAGES_PER_BATCH` | `100` | 每批切出頁數（大型 PDF 由 MAX_FILE_MB 自動縮減）|
+| `MAX_FILE_MB` | `30` | 單批暫存 PDF 大小上限（超過自動對半遞迴縮減）|
+| `MAX_RETRIES` | `3` | 單批最大重試次數 |
+| `POLL_TIMEOUT` | `1800` | Datalab 最長等待秒數（30 分鐘）|
+
+> 若遇到 413 Payload Too Large：調低 `MAX_FILE_MB`（例如改為 `15`）
+
+### 斷點續跑
+
+`batch_process.py` 每處理完一個完整 PDF 就立即寫入 `document_chunks.json`。**中途 Ctrl+C 中斷後，重新執行會自動跳過已完成的檔案，從下一個 PDF 繼續。**
+
+#### 中途改 code 再繼續的操作流程
+
+```powershell
+# 1. 隨時可以 Ctrl+C 停止，document_chunks.json 已保存目前進度
+
+# 2. 確認已完成哪些 PDF（查看 source 清單）
+py -3.12 analyze_chunks.py
+
+# 3. 修改 batch_process.py（改參數、改邏輯都可以）
+
+# 4. 直接重新執行，已完成的 PDF 自動跳過
+py -3.12 batch_process.py
 ```
 
-| mode | 速度 | 精度 | 建議使用場景 |
-|------|------|------|------------|
-| `"fast"` | ⚡ 最快 | 一般 | 純文字、格式簡單的 PDF |
-| `"balanced"` | 中等 | 良好 | 一般醫療文件 |
-| `"accurate"`（目前）| 較慢 | 最高 | 掃描版 PDF、手寫、複雜排版 |
+#### 若要重新處理特定 PDF
+
+```powershell
+# 從 document_chunks.json 移除特定檔案的 chunks，讓它重跑
+py -3.12 -c "
+import json
+TARGET = '要重新處理的檔名.pdf'
+chunks = json.load(open('document_chunks.json', encoding='utf-8'))
+chunks = [c for c in chunks if c['source'] != TARGET]
+json.dump(chunks, open('document_chunks.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+print(f'已移除 {TARGET}，重新執行 batch_process.py 即可重跑')
+"
+py -3.12 batch_process.py
+```
+
+#### 若要完全重頭開始
+
+```powershell
+del document_chunks.json   # 或手動刪除
+py -3.12 batch_process.py
+```
+
+### GPU 排錯
+
+若出現「未偵測到 GPU」但你確定有 NVIDIA 顯卡，通常是 PyTorch 安裝的是 CPU-only 版：
+
+```powershell
+# 步驟 1：確認 nvidia-smi 正常（顯示驅動版本和 CUDA 版本）
+nvidia-smi
+
+# 步驟 2：確認 PyTorch 是否含 CUDA（輸出 None 表示 CPU-only）
+py -3.12 -c "import torch; print('CUDA built:', torch.version.cuda)"
+
+# 步驟 3：若輸出 None，重新安裝 CUDA 版（依 nvidia-smi 顯示的 CUDA 版本調整）
+py -3.12 -m pip uninstall torch torchvision -y
+py -3.12 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+
+# 步驟 4：確認 GPU 偵測正常（輸出 True）
+py -3.12 -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+```
+
+若 torch 正常但 Marker 仍不用 GPU，在 `batch_process.py` 頂部直接強制指定：
+```python
+MARKER_DEVICE = "cuda"   # 強制使用 CUDA，不做自動偵測
+```
 
 ---
 
-## 📄 授權
+## 與原始專案的差異
+
+本專案從 [hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss](https://github.com/hxrsh-3/chat-w-taylor-on-newheights-and-travis-gq-autorag-openaioss) 改作，保留了 Cloudflare Workers + Durable Objects 對話持久化的骨架，其餘幾乎全面重構。
+
+### 功能差異對照
+
+| 面向 | 原始專案 | 本專案（NTUH_OMS_RAG）|
+|------|----------|----------------------|
+| **應用領域** | 娛樂（Taylor Swift 播客、Travis Kelce GQ 專訪） | 醫療（臺大醫院口腔顎面外科衛教）|
+| **LLM** | `@cf/openai/gpt-oss-120b`（OpenAI GPT-OSS via Cloudflare）| `@cf/meta/llama-3.3-70b-instruct-fp8-fast`（Meta Llama，Cloudflare 原生）|
+| **知識庫建構** | Cloudflare **AutoRAG**（全託管，自動 ingestion）| 手動流程：PDF → OCR → BGE Embedding → Cloudflare Vectorize |
+| **知識庫查詢** | `env.AI.autorag("索引名").aiSearch({ query })` 單一呼叫 | BGE Embedding → Vectorize `query(topK=5, returnMetadata)`，取回原文 chunks 自行組合 |
+| **外部補充檢索** | ❌ 無 | ✅ PubMed NCBI E-utilities + Tavily（相似度 < 0.55 時自動觸發）|
+| **網頁即時抓取** | ✅ Cloudflare Browser Rendering（Puppeteer 抓取 GQ 文章）| ❌ 無（知識庫改用本地 PDF 離線建置）|
+| **回退策略** | AutoRAG 無結果 → GPT-OSS 120B 直接回答（無知識庫）| 本地向量不足 → PubMed + Tavily 補充搜尋，仍有知識庫 context |
+| **System Prompt** | `"You are a friendly assistant"`（單行）| 詳細醫療衛教 Prompt：角色定義、語言偵測規則、語氣規範、引用格式、安全守則（見 `src/chatState.ts` 步驟 4）|
+| **語言支援** | 英文 | 自動偵測語言（繁體中文 / 英文 / 日文等），預設繁體中文台灣用語 |
+| **醫療安全機制** | ❌ 無 | ✅ 禁止捏造醫療數據、必須附引用來源、無資料時引導就醫 |
+| **OCR 管線** | ❌ 無（AutoRAG 自動處理）| ✅ 雙通道：Datalab Marker API（雲端）+ 本地 marker-pdf（GPU），支援斷點續跑 |
+| **向量化腳本** | ❌ 無 | ✅ `batch_process.py`（OCR）、`upload_prep.py`（BGE 向量化 + NDJSON）|
+
+### 資料檢索來源差異
+
+**原始專案的資料流**：
+```
+使用者問題
+   └─→ Cloudflare AutoRAG（全託管索引 "proud-thunder-70c9"）
+           └─→ 有結果：直接回傳 AutoRAG 的 response 字串
+           └─→ 無結果：GPT-OSS 120B 直接生成（無任何知識庫 context）
+```
+
+**本專案的資料流**：
+```
+使用者問題
+   ├─[1] BGE Embedding 向量化問題
+   ├─[2] Vectorize 本地知識庫搜尋（Reference_data/ 的 PDF 臨床指引）
+   │       ├── 相似度 ≥ 0.55 → 本地 context 帶入 Prompt
+   │       └── 相似度 < 0.55 → 觸發下方外部搜尋
+   ├─[3] 外部補充（並行）
+   │       ├── PubMed NCBI E-utilities（免費，醫學文獻）
+   │       └── Tavily 限定醫療網域搜尋（pubmed / medlineplus / cochrane 等）
+   └─[4] 組合 Prompt + Llama 3.3 70B 生成回答
+```
+
+---
+
+## 授權
 
 本專案僅供醫療研究與教育用途，請勿將 AI 回答作為正式醫療診斷依據。
+
+---

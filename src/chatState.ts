@@ -4,7 +4,7 @@
 //   1. 儲存每個 session 的對話歷史（持久化到 Durable Object Storage）
 //   2. 本地知識庫向量檢索（Vectorize Index，臨床指引）
 //   3. 外部補充檢索（PubMed、Tavily）—— 本地知識庫不足時才啟動
-//   4. 呼叫 DeepSeek-R1 LLM 生成回答
+//   4. 呼叫 Llama 3.3 70B LLM 生成回答
 //   5. 回傳結果給前端
 // ============================================================
 
@@ -155,8 +155,6 @@ export class ChatState {
   }
 
   async fetch(request: Request) {
-    const url = new URL(request.url);
-    
     // GET：回傳當前 session 的全部對話歷史（頁面載入時呼叫）
     if (request.method === 'GET') {
       return new Response(JSON.stringify({ messages: this.messages }), {
@@ -238,9 +236,18 @@ export class ChatState {
         }
 
         // ── 步驟 4：建構 System Prompt ──
-        // 想修改 AI 的回答風格、語氣、格式規定？在這個 systemPrompt 字串中修改
-        // 臨床指引內容（localContext）與外部資料（externalSection）會自動帶入
-        // 本地知識庫統一標注為「臨床指引參考資料」
+        // ┌──────────────────────────────────────────────────────────────────────────┐
+        // │  【PROMPT 修改指南】                                                      │
+        // │  ● 語言規定區塊：調整自動偵測語言的行為（預設：繁體中文）                  │
+        // │  ● 對象與語氣區塊：調整稱謂（「您」）、語氣（溫和/正式/親切）              │
+        // │  ● 回答格式區塊：調整標題、條列、長度限制等排版規則                        │
+        // │  ● 知識庫注意事項區塊：修改安全性限制（建議保持嚴格）                      │
+        // │  ● ${localContext}：自動注入 Vectorize 本地知識庫（臨床指引文字）         │
+        // │  ● ${externalSection}：PubMed + Tavily 補充（本地分數不足時才帶入）       │
+        // │  ※ 修改後須重新部署：npx wrangler deploy                                 │
+        // └──────────────────────────────────────────────────────────────────────────┘
+
+        // 有本地命中時附加來源標注；無命中時留空（不誤導 AI 標注不存在的來源）
         const localSourceNote = localMatches.length > 0 ? '（參考資料：臨床指引參考資料）' : '';
 
         const systemPrompt = `
@@ -249,8 +256,8 @@ export class ChatState {
 【語言規定】
 - 自動偵測病患使用的語言，並全程以相同語言回應（如病患用繁體中文問，就用繁體中文；用英文問，就用英文；用日文問，就用日文）。
 - 預設語言為繁體中文（台灣用語）。
-- 【絕對禁止】在回應中夾雜其他語言的單字（例如不可說「tongue（舌頭）」，應直接說「舌頭」）。
-- 醫學專有名詞需同時提供中文與英文，格式為「中文名稱（英文）」，例如「截骨手術（Osteotomy）」。
+- 【禁止】在一般語句中夾雜其他語言的單字（例如不可說「tongue 很痛」，應說「舌頭很痛」）。
+- 【例外】醫學專有名詞需同時提供中文與英文，格式為「中文名稱（英文）」，例如「截骨手術（Osteotomy）」。此括號英文不視為夾雜外語。
 - 使用白話文，讓病患能輕鬆理解，避免過度艱深的醫學術語。
 
 【對象與語氣】
@@ -270,7 +277,7 @@ export class ChatState {
 - 回答需要列點時，每個項目請另起一行，並在開頭加上「1. 」「2. 」或「• 」符號。
 - 段落之間空一行，讓內容更易閱讀。
 - 不使用 Markdown 語法（不使用 **粗體** 或 #標題）。
-- 引用本地臨床指引時，在該段落末尾加上 ${localSourceNote || '（參考資料：臨床指引參考資料）'}。
+- 引用本地臨床指引時，在該段落末尾加上${localSourceNote ? ` ${localSourceNote}` : '「（參考資料：臨床指引參考資料）」'}。
 - 引用外部資料時，標注「（參考資料：來源網址）（外部參考資料，僅供參考）」。
 
 【安全守則】
@@ -286,12 +293,10 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
 `;
 
         // ── 步驟 5：呼叫 LLM 生成最終回答 ──
-        // 使用 Llama 3.3 70B（Meta）：Cloudflare 原生支援，格式穩定，中文夠好
-        // temperature=0.3：在穩定性與自然語氣之間取得平衡
+        // 使用 Llama 3.3 70B（Meta，Cloudflare 原生支援）
+        // temperature=0.3：穩定性與自然語氣之間的平衡點（醫療場景建議 0.1~0.3）
         // max_tokens=2048：足以容納完整的衛教回答
         console.log('呼叫 LLM 生成回答...');
-        // 使用 Llama 3.3 70B — Meta 官方大模型，Cloudflare 原生支援，格式穩定，中文夠好
-        // 回應格式：{ response: string }（標準 Cloudflare Workers AI 格式）
         const response = await this.env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
             messages: [
                 { role: 'system', content: systemPrompt },
@@ -343,6 +348,10 @@ ${externalSection ? `\n【外部醫學參考資料（補充，最低優先）】
           timestamp: Date.now(),
           isAI: true
         };
+        
+        // 持久化錯誤訊息，避免 DO 重啟後 userMessage 孤立（無對應 AI 回覆）
+        this.messages.push(errorMessage);
+        await this.state.storage.put('messages', this.messages);
         
         return new Response(JSON.stringify({ messages: [userMessage, errorMessage] }), {
           headers: { 'Content-Type': 'application/json' },

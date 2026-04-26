@@ -2,23 +2,34 @@ import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloud
 import { describe, it, expect } from 'vitest';
 import worker from '../src/index';
 
-// For now, you'll need to do something like this to get a correctly-typed
-// `Request` to pass to `worker.fetch()`.
 const IncomingRequest = Request<unknown, IncomingRequestCfProperties>;
 
-describe('Hello World worker', () => {
-	it('responds with Hello World! (unit style)', async () => {
-		const request = new IncomingRequest('http://example.com');
-		// Create an empty context to pass to `worker.fetch()`.
-		const ctx = createExecutionContext();
-		const response = await worker.fetch(request, env, ctx);
-		// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
-		await waitOnExecutionContext(ctx);
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
-	});
+describe('NTUH OMS RAG Worker', () => {
+  it('未知路由回傳 404', async () => {
+    const request = new IncomingRequest('http://example.com/unknown-path');
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(404);
+  });
 
-	it('responds with Hello World! (integration style)', async () => {
-		const response = await SELF.fetch('https://example.com');
-		expect(await response.text()).toMatchInlineSnapshot(`"Hello World!"`);
-	});
+  it('/chat/init 回傳包含 id 的 JSON', async () => {
+    const request = new IncomingRequest('http://example.com/chat/init');
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(200);
+    const body = await response.json() as { id: string };
+    expect(typeof body.id).toBe('string');
+  });
+
+  it('/chat/:id DELETE 清除對話回傳 success', async () => {
+    const request = new IncomingRequest('http://example.com/chat/test-id', { method: 'DELETE' });
+    const ctx = createExecutionContext();
+    const response = await worker.fetch(request, env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(response.status).toBe(200);
+    const body = await response.json() as { success: boolean };
+    expect(body.success).toBe(true);
+  });
 });
