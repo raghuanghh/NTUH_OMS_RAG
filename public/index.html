@@ -1,25 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NTUH_OMS_RAG | 台大醫院口腔顎面外科 AI 查詢系統</title>
+  <title>NTUH OMS RAG | 台大醫院口腔顎面外科 AI 衛教查詢</title>
   
   <!-- SEO and Social Meta Tags -->
-  <meta name="description" content="NTUH OMS RAG - 台大醫院口腔顎面外科 AI 智能查詢系統，由 Cloudflare AutoRAG 提供支援">
-  <meta name="keywords" content="NTUH, OMS, RAG, 台大醫院, 口腔顎面外科, AI, Cloudflare, AutoRAG">
+  <meta name="description" content="台大醫院口腔顎面外科 AI 衛教助理，結合本院臨床指引與 PubMed 醫學文獻，以繁體中文回答病患衛教問題。">
+  <meta name="keywords" content="NTUH, OMS, 台大醫院, 口腔顎面外科, 衛教, AI, 醫療問答">
   
   <!-- Open Graph / Social Media -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="NTUH_OMS_RAG | 台大醫院口腔顎面外科 AI 查詢系統">
-  <meta property="og:description" content="NTUH OMS RAG - AI 智能查詢系統，由 Cloudflare AutoRAG 提供支援">
-  <meta property="og:image" content="/og-image.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="NTUH_OMS_RAG">
-  <meta name="twitter:description" content="台大醫院口腔顎面外科 AI 智能查詢系統">
+  <meta property="og:title" content="NTUH OMS RAG | 台大醫院口腔顎面外科 AI 衛教查詢">
+  <meta property="og:description" content="台大醫院口腔顎面外科 AI 衛教助理，結合本院臨床指引與醫學文獻，提供術前術後衛教資訊。">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="NTUH OMS RAG">
+  <meta name="twitter:description" content="台大醫院口腔顎面外科 AI 衛教查詢系統">
   
   <!-- Favicon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏥</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦷</text></svg>">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,10 +30,12 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     
     body {
-      font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Inter', 'PingFang TC', 'Microsoft JhengHei', -apple-system, BlinkMacSystemFont, sans-serif;
       background: linear-gradient(135deg, #0a1628 0%, #0d2b5e 25%, #1a3a6b 50%, #0d2b5e 75%, #0a1628 100%);
       background-size: 400% 400%;
       animation: gradientShift 8s ease infinite;
@@ -53,7 +54,7 @@
       position: relative;
     }
     
-    /* Enhanced Loading state */
+    /* 初始載入畫面（React 掛載後會被替換） */
     .loading {
       display: flex;
       flex-direction: column;
@@ -61,10 +62,6 @@
       align-items: center;
       height: 100vh;
       color: white;
-      font-size: 1.4rem;
-      font-weight: 600;
-      text-align: center;
-      padding: 20px;
     }
     
     .loading-container {
@@ -74,6 +71,7 @@
       border-radius: 30px;
       border: 2px solid rgba(30, 100, 200, 0.4);
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      text-align: center;
     }
     
     .spinner {
@@ -83,7 +81,7 @@
       border-top: 4px solid #4a9eff;
       border-right: 4px solid #1e64c8;
       border-radius: 50%;
-      animation: spin 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+      animation: spin 1.2s linear infinite;
       margin: 0 auto 20px;
     }
     
@@ -93,116 +91,34 @@
     }
     
     .loading-text {
-      background: linear-gradient(45deg, #4a9eff, #1e64c8, #0a3d8f, #4a9eff);
-      background-size: 400% 400%;
-      animation: taylorEras 3s ease infinite;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-weight: 900;
-      text-shadow: none;
+      color: #4a9eff;
+      font-size: 1.4rem;
+      font-weight: 700;
       letter-spacing: 1px;
     }
     
-    @keyframes taylorEras {
-      0% { background-position: 0% 50%; }
-      25% { background-position: 50% 0%; }
-      50% { background-position: 100% 50%; }
-      75% { background-position: 50% 100%; }
-      100% { background-position: 0% 50%; }
-    }
-    
     .loading-subtitle {
-      margin-top: 15px;
-      font-size: 1.1rem;
-      opacity: 0.95;
-      font-weight: 600;
-      font-style: italic;
+      margin-top: 12px;
+      font-size: 1rem;
+      opacity: 0.8;
+      color: white;
     }
 
-    .jersey-number-loading {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: linear-gradient(135deg, #1e64c8 0%, #0d47a1 100%);
-      color: white;
-      width: 35px;
-      height: 35px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 900;
-      font-size: 1rem;
-      box-shadow: 0 4px 12px rgba(220, 20, 60, 0.4);
-      animation: pulse 2s ease-in-out infinite;
-    }
-    
-    /* Floating sparkles */
-    .sparkle {
-      position: absolute;
-      color: #4a9eff;
-      font-size: 1.5rem;
-      animation: sparkleFloat 4s ease-in-out infinite;
-      pointer-events: none;
-    }
-    
-    @keyframes sparkleFloat {
-      0%, 100% { 
-        opacity: 0; 
-        transform: translateY(20px) scale(0) rotate(0deg); 
-      }
-      25% { 
-        opacity: 1; 
-        transform: translateY(0px) scale(1) rotate(90deg); 
-      }
-      75% { 
-        opacity: 1; 
-        transform: translateY(-10px) scale(1.2) rotate(270deg); 
-      }
-    }
-    
-    /* Performance optimizations */
-    * {
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    
-    img {
-      max-width: 100%;
-      height: auto;
-    }
+    img { max-width: 100%; height: auto; }
   </style>
 </head>
 <body>
   <div id="root">
     <div class="loading">
       <div class="loading-container">
-        <div class="jersey-number-loading">12</div>
         <div class="spinner"></div>
-        <div class="loading-text">🏥 NTUH_OMS_RAG</div>
-        <div class="loading-subtitle">台大醫院口腔顎面外科 AI 智能查詢系統載入中...</div>
+        <div class="loading-text">🦷 NTUH OMS RAG</div>
+        <div class="loading-subtitle">台大醫院口腔顎面外科 AI 衛教查詢系統載入中...</div>
       </div>
-      
-      <!-- Medical themed floating icons -->
-      <div class="sparkle" style="top: 15%; left: 8%; animation-delay: 0s;">🏥</div>
-      <div class="sparkle" style="top: 25%; right: 12%; animation-delay: 1s;">💊</div>
-      <div class="sparkle" style="bottom: 35%; left: 15%; animation-delay: 2s;">🦷</div>
-      <div class="sparkle" style="top: 55%; right: 20%; animation-delay: 3s;">🔬</div>
-      <div class="sparkle" style="bottom: 15%; right: 8%; animation-delay: 0.5s;">🩺</div>
-      <div class="sparkle" style="top: 40%; left: 25%; animation-delay: 1.5s;">💉</div>
-      <div class="sparkle" style="bottom: 25%; left: 35%; animation-delay: 2.5s;">🧬</div>
-      <div class="sparkle" style="top: 70%; right: 35%; animation-delay: 3.5s;">📋</div>
-      <div class="sparkle" style="top: 35%; left: 45%; animation-delay: 0.8s;">🏨</div>
-      <div class="sparkle" style="bottom: 45%; right: 45%; animation-delay: 2.2s;">⚕️</div>
     </div>
   </div>
   
-  <!-- React CDN -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  
-  <!-- Your bundled app -->
+  <!-- bundle.js 已包含 React，不需另外從 CDN 載入 -->
   <script src="/bundle.js"></script>
 </body>
 </html>

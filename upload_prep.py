@@ -27,7 +27,7 @@ from sentence_transformers import SentenceTransformer
 SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
 CHUNKS_FILE = os.path.join(SCRIPT_DIR, "document_chunks.json")
 OUTPUT_FILE = os.path.join(SCRIPT_DIR, "vectorize_upload.ndjson")
-BATCH_SIZE  = 32    # 每批向量化的 chunk 數（影響記憶體用量與速度）
+BATCH_SIZE  = 32   # 每批向量化的 chunk 數（影響記憶體用量與速度）
 
 # Cloudflare Vectorize metadata 單欄位上限（bytes）
 # 超過此長度的 content 會被截斷，避免上傳時 413/metadata 錯誤
@@ -45,7 +45,6 @@ def main():
     # --- 載入嵌入模型（在 main() 內載入，避免 import 時觸發模型下載）---
     print(f"⏳ 載入嵌入模型 {MODEL_NAME}...")
     model = SentenceTransformer(MODEL_NAME)
-
     # --- 讀取 chunks ---
     print("📂 讀取 document_chunks.json 中...")
     if not os.path.exists(CHUNKS_FILE):

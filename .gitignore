@@ -168,5 +168,6 @@ dist
 
 # Large data files (not suitable for git)
 vectorize_upload.ndjson
+document_chunks.json
 Reference_data/
 public/bundle.js.map

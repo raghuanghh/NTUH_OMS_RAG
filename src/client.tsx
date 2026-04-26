@@ -380,7 +380,7 @@ const App: React.FC = () => {
 
   // 頁面載入時：初始化對話 session 並載入歷史訊息
   useEffect(() => {
-    fetch('/chat/init', { method: 'POST' })
+    fetch('/chat/init')   // GET：初始化 session，取得 Durable Object ID
       .then(res => res.json() as Promise<ChatInitResponse>)
       .then(data => {
         setChatStateId(data.id);
@@ -523,9 +523,9 @@ const App: React.FC = () => {
 
       <Footer>
         NTUH OMS RAG - 台大醫院口腔顎面外科衛教系統 | 使用{' '}
-        <a href="https://developers.cloudflare.com/autorag/">Cloudflare AutoRAG</a>、
-        <a href="https://developers.cloudflare.com/workers/">Workers</a> 及{' '}
-        <a href="https://developers.cloudflare.com/r2/">R2</a> 建置
+        <a href="https://developers.cloudflare.com/workers-ai/">Workers AI</a>、
+        <a href="https://developers.cloudflare.com/vectorize/">Vectorize</a> 及{' '}
+        <a href="https://developers.cloudflare.com/durable-objects/">Durable Objects</a> 建置
       </Footer>
     </AppContainer>
   );
